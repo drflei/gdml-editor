@@ -9,7 +9,7 @@ pip install gdml-editor
 
 ### From Source
 ```bash
-git clone https://github.com/YOURUSERNAME/gdml-editor.git
+git clone https://github.com/drflei/gdml-editor.git
 cd gdml-editor
 pip install -e .
 ```
@@ -205,7 +205,7 @@ db.save_material("ScriptedMaterial", material)
 
 ## Links
 
-- **GitHub**: https://github.com/YOURUSERNAME/gdml-editor
+- **GitHub**: https://github.com/drflei/gdml-editor
 - **PyPI**: https://pypi.org/project/gdml-editor/
 - **pyg4ometry**: https://github.com/stewartboogert/pyg4ometry
 - **Geant4**: https://geant4.web.cern.ch/

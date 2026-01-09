@@ -48,7 +48,7 @@ git commit -m "Initial commit: GDML Editor v1.0.0"
 
 ### Step 3: Push to GitHub
 ```bash
-git remote add origin https://github.com/YOURUSERNAME/gdml-editor.git
+git remote add origin https://github.com/drflei/gdml-editor.git
 git branch -M main
 git push -u origin main
 ```
@@ -185,8 +185,8 @@ Now GitHub Actions will automatically publish to PyPI on new releases!
 3. Update examples to use real repository URL
 
 ```bash
-# Replace YOURUSERNAME with actual username
-find . -type f -name "*.md" -exec sed -i 's/YOURUSERNAME/YOUR_ACTUAL_USERNAME/g' {} +
+# Replace drflei with actual username
+find . -type f -name "*.md" -exec sed -i 's/drflei/YOUR_ACTUAL_USERNAME/g' {} +
 git add .
 git commit -m "docs: Update documentation with actual URLs"
 git push

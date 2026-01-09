@@ -96,7 +96,7 @@ pip install gdml-editor
 
 ### From Source
 ```bash
-git clone https://github.com/YOURUSERNAME/gdml-editor.git
+git clone https://github.com/drflei/gdml-editor.git
 cd gdml-editor
 pip install -e .
 ```
@@ -132,7 +132,7 @@ cd /home/flei/gdml_editor
 # Name: gdml-editor
 
 # 3. Push code
-git remote add origin https://github.com/YOURUSERNAME/gdml-editor.git
+git remote add origin https://github.com/drflei/gdml-editor.git
 git branch -M main
 git push -u origin main
 
