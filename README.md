@@ -42,7 +42,7 @@ pip install gdml-editor
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/gdml-editor.git
+git clone https://github.com/drflei/gdml-editor.git
 cd gdml-editor
 pip install -e .
 ```
@@ -203,7 +203,7 @@ The application is built on pyg4ometry's native features:
 ### Setup Development Environment
 
 ```bash
-git clone https://github.com/yourusername/gdml-editor.git
+git clone https://github.com/drflei/gdml-editor.git
 cd gdml-editor
 pip install -e ".[dev]"
 ```
@@ -246,6 +246,7 @@ Contributions are welcome! Please:
 - [ ] Element tooltips with properties
 - [ ] Recently used materials
 - [ ] Material comparison tools
+- [ ] Add/remove CSGs
 
 ## License
 
@@ -260,7 +261,7 @@ If you use GDML Editor in your research, please cite:
   title = {GDML Editor: GUI for GDML Geometry Files},
   author = {GDML Editor Contributors},
   year = {2026},
-  url = {https://github.com/yourusername/gdml-editor}
+  url = {https://github.com/drflei/gdml-editor}
 }
 ```
 
@@ -268,13 +269,13 @@ If you use GDML Editor in your research, please cite:
 
 - Built on [pyg4ometry](https://github.com/g4edge/pyg4ometry) by the Geant4 community
 - Uses [VTK](https://vtk.org/) for 3D visualization
-- Inspired by the needs of particle physics detector design
+- Inspired by the needs of space particle physics detector design
 
 ## Support
 
-- 📫 Issues: [GitHub Issues](https://github.com/yourusername/gdml-editor/issues)
-- 📖 Documentation: [Wiki](https://github.com/yourusername/gdml-editor/wiki)
-- 💬 Discussions: [GitHub Discussions](https://github.com/yourusername/gdml-editor/discussions)
+- 📫 Issues: [GitHub Issues](https://github.com/drflei/gdml-editor/issues)
+- 📖 Documentation: [Wiki](https://github.com/drflei/gdml-editor/wiki)
+- 💬 Discussions: [GitHub Discussions](https://github.com/drflei/gdml-editor/discussions)
 
 ## Screenshots
 
