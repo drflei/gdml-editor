@@ -10,7 +10,7 @@ Be respectful, constructive, and professional in all interactions.
 
 ### Reporting Bugs
 
-1. Check if the bug has already been reported in [Issues](https://github.com/yourusername/gdml-editor/issues)
+1. Check if the bug has already been reported in [Issues](https://github.com/drflei/gdml-editor/issues)
 2. If not, create a new issue with:
    - Clear title and description
    - Steps to reproduce
@@ -20,7 +20,7 @@ Be respectful, constructive, and professional in all interactions.
 
 ### Suggesting Features
 
-1. Check [Issues](https://github.com/yourusername/gdml-editor/issues) for existing feature requests
+1. Check [Issues](https://github.com/drflei/gdml-editor/issues) for existing feature requests
 2. Create a new issue with:
    - Clear description of the feature
    - Use cases and benefits
@@ -49,7 +49,7 @@ Be respectful, constructive, and professional in all interactions.
 
 ```bash
 # Clone your fork
-git clone https://github.com/yourusername/gdml-editor.git
+git clone https://github.com/drflei/gdml-editor.git
 cd gdml-editor
 
 # Create virtual environment
@@ -223,7 +223,7 @@ def create_material(name, density, composition):
 
 ## Questions?
 
-- Open a [Discussion](https://github.com/yourusername/gdml-editor/discussions)
+- Open a [Discussion](https://github.com/drflei/gdml-editor/discussions)
 - Join our community chat
 - Email maintainers
 
