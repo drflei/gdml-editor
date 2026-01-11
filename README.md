@@ -10,10 +10,11 @@ A professional GUI application for editing GDML (Geometry Description Markup Lan
 
 ### 🎯 Core Functionality
 - **Visual GDML Editing**: Browse and modify GDML geometry files with an intuitive GUI
-- **Material Management**: Change materials on logical volumes with ease
+- **Volume Properties**: Rename logical volumes, change materials, and inspect placements/solid parameters
 - **VTK Visualization**: Integrated 3D geometry viewer
 - **NIST Database**: Access to 400+ Geant4/NIST materials
 - **Save/Load**: Read and write GDML files seamlessly
+- **Insert/Delete Volumes**: Create simple shapes and keep the hierarchy up-to-date
 
 ### 🔬 User-Defined Materials
 - **Compound Materials**: Define materials using molecular formulas (H2O, SiO2, PbF2, etc.)
@@ -28,8 +29,7 @@ A professional GUI application for editing GDML (Geometry Description Markup Lan
 - **pyg4ometry Integration**: Leverages native pyg4ometry features
 - **Unit Conversions**: Automatic handling of density, temperature, pressure units
 - **Error Prevention**: Validation and helpful error messages
-- **Material Search**: Filter volumes and materials quickly
-- **Batch Operations**: Efficient multi-material workflows
+- **Search**: Filter the volume tree quickly
 
 ## Installation
 
@@ -72,11 +72,12 @@ main()
 
 1. **Open GDML File**: File → Open GDML...
 2. **Select Volume**: Click on volume in the tree
-3. **Change Material**: 
-   - Choose source (Existing/NIST/User-defined)
-   - Select material
-   - Click "Apply Material Change"
+3. **Edit Properties** (right panel):
+    - **Name**: edit and click **Rename**
+    - **Material**: choose from the dropdown (existing registry + Geant4/NIST + user-defined) and click **Apply**
 4. **Save**: File → Save or Save As...
+
+To view the geometry in 3D: View → View in VTK
 
 ## User-Defined Materials
 

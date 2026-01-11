@@ -10,10 +10,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent))
-
-from gdml_editor_gui import UserMaterialDatabase
+from gdml_editor.gui import UserMaterialDatabase
 
 def test_material_database():
     """Test the material database with various material types."""
@@ -45,6 +42,7 @@ def test_material_database():
             'pressure_unit': 'pascal'
         }
         db.add_material('Water', water)
+        assert db.get_material('Water')['composition'] == 'H2O'
         print("Material: Water")
         print("  Type: Compound")
         print("  Formula: H2O")

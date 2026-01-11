@@ -72,11 +72,13 @@ Define materials by mass fraction of elements:
 
 1. **Open a GDML file**
 2. **Select a volume** from the tree
-3. **In "Change Material" section**:
-   - Select "User Defined" radio button
-   - Choose your material from dropdown
-   - Click "Info" button to view material details
-   - Click "Apply Material Change"
+3. In the **Volume Properties** panel (right side):
+   - Use the **Material** dropdown to select your user material
+   - Click **Apply**
+
+Notes:
+- The material dropdown is a combined list of registry materials, Geant4/NIST `G4_...` names, and your user-defined materials.
+- If a selected material is not yet in the loaded registry, it is created on-demand and added before applying.
 
 ### Managing Materials
 

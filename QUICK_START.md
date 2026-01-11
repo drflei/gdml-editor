@@ -36,26 +36,31 @@ python -m gdml_editor.gui
 ## Quick Tutorial
 
 ### 1. Opening a GDML File
-- Click **File → Open** or press `Ctrl+O`
+- Click **File → Open GDML...**
 - Navigate to your GDML file and select it
 - The geometry tree will populate on the left
 
 ### 2. Viewing 3D Geometry
-- Click **View → Show 3D View** or press `Ctrl+D`
+- Click **View → View in VTK**
 - Use mouse to rotate, zoom, and pan
 - Right-click for view options
 
 ### 3. Editing Materials
 
-#### Using Built-in NIST Materials
+Materials are edited from the **Volume Properties** panel (right side).
+
+#### Using Built-in Geant4/NIST Materials
 1. Select a volume in the tree
-2. Right-click → **Change Material**
-3. Browse NIST materials (e.g., G4_WATER, G4_Al)
-4. Click **Apply**
+2. In **Volume Properties → Material**, choose a `G4_...` material (e.g., `G4_WATER`, `G4_Al`)
+3. Click **Apply**
+
+The dropdown is a combined list of:
+- materials already in the loaded GDML/registry
+- all Geant4/NIST material names (created on demand when applied)
+- your user-defined materials from `~/.gdml_editor/user_materials.json`
 
 #### Creating Custom Materials
-1. Click **Materials → User Materials** or press `Ctrl+M`
-2. Click **Add New Material**
+1. Click **Materials → Define New Material...**
 3. Fill in the material properties:
    - **Name**: e.g., "MyCustomAlloy"
    - **Density**: e.g., "2.7" (g/cm³)
@@ -65,30 +70,29 @@ python -m gdml_editor.gui
      - Select from dropdown (118 elements available)
      - Use type-ahead: type "Al" to filter to Aluminum
      - Enter composition (atoms for compound, fraction for mixture)
-4. Click **OK** to save
+4. Click **Save Material**
 
 ### 4. Managing User Materials
-- **View All**: Click "View Details" in the material list
-- **Edit**: Select material → click "Edit"
-- **Delete**: Select material → click "Delete"
-- **Apply to Volume**: Select volume, right-click → change to user material
+- **View**: click a material name to see details
+- **Edit**: Select material → click **Edit Selected**
+- **Delete**: Select material → click **Delete Selected**
+- **New**: click **New Material**
+- **Apply to Volume**: Select volume → choose material in **Volume Properties** → **Apply**
 
 ### 5. Editing Geometry
 
-#### Moving Volumes
-1. Select a volume in the tree
-2. Right-click → **Edit Position**
-3. Modify X, Y, Z coordinates
-4. Click **Apply**
+#### Inserting a New Volume
+1. Click **Edit → Insert Volume...**
+2. Choose a shape and parameters
+3. Choose parent volume and material
+4. Click **Insert**
 
-#### Changing Dimensions
-1. Select a volume
-2. Right-click → **Edit Dimensions**
-3. Modify size parameters
-4. Click **Apply**
+#### Deleting a Volume
+1. Select a volume in the tree
+2. Click **Edit → Delete Volume...**
 
 ### 6. Saving Changes
-- Click **File → Save** or press `Ctrl+S`
+- Click **File → Save**
 - Overwrites the original file
 - Or **File → Save As** to save to a new location
 
@@ -137,14 +141,7 @@ python -m gdml_editor.gui
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| Ctrl+O | Open GDML file |
-| Ctrl+S | Save GDML file |
-| Ctrl+D | Show 3D view |
-| Ctrl+M | User materials dialog |
-| Ctrl+F | Find in tree |
-| Ctrl+Q | Quit |
+This version of the GUI does not currently define dedicated keyboard shortcuts (menu entries may show defaults depending on your platform).
 
 ## Troubleshooting
 

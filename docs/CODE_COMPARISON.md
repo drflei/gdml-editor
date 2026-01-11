@@ -81,7 +81,6 @@ def create_user_material_in_registry(self, mat_name, mat_data):
 ---
 
 ### AFTER: Clean, Modular, pyg4ometry-First
-```python
 def create_user_material_in_registry(self, mat_name, mat_data):
     """Create a user-defined material using pyg4ometry native features."""
     import pyg4ometry.geant4 as g4
@@ -110,12 +109,8 @@ def create_user_material_in_registry(self, mat_name, mat_data):
             mat.add_element_massfraction(element, comp['fraction'])
     
     # Set optional properties
-    if temperature is not None:
-        mat.temperature = temperature
     if pressure is not None:
         mat.pressure = pressure
-    
-    return mat
 
 # Helper methods
 def _convert_density_to_g_cm3(self, density, unit):
@@ -151,95 +146,16 @@ def _get_or_create_element(self, element_name):
 
 ---
 
-## Apply Material Change - Before vs After
+## Material Apply - Current Implementation
 
-### BEFORE: Nested Logic, Repetitive Code
-```python
-def apply_material_change(self):
-    """Apply material change to selected volume."""
-    # ... validation code ...
-    
-    try:
-        import pyg4ometry
-        
-        if new_material not in self.registry.materialDict:
-            if self.material_source.get() == "nist":
-                try:
-                    mat = pyg4ometry.geant4.nist_material_2geant4Material(
-                        new_material, self.registry
-                    )
-                    self.update_material_list()
-                    self.material_combo['values'] = sorted(self.registry.materialDict.keys())
-                except Exception as e:
-                    messagebox.showerror("Error", 
-                        f"Material '{new_material}' not found and could not be created as NIST material:\n{str(e)}")
-                    return
-            elif self.material_source.get() == "user":
-                mat_data = self.user_material_db.get_material(new_material)
-                if not mat_data:
-                    messagebox.showerror("Error", f"User material '{new_material}' not found in database")
-                    return
-                try:
-                    mat = self.create_user_material_in_registry(new_material, mat_data)
-                    self.update_material_list()
-                    self.material_combo['values'] = sorted(self.registry.materialDict.keys())
-                except Exception as e:
-                    messagebox.showerror("Error", 
-                        f"Failed to create user material '{new_material}':\n{str(e)}")
-                    return
-            else:
-                messagebox.showerror("Error", f"Material '{new_material}' not found")
-                return
-        
-        # ... rest of method ...
-```
-**Lines: 83** | **Nesting: 4-5 levels** | **DRY: No**
+Material editing is now driven from the **Volume Properties** panel:
 
----
+- A single **Material** dropdown lists registry materials, Geant4/NIST `G4_...` names, and user-defined materials.
+- Clicking **Apply** uses a helper that ensures the selected material exists in the registry (creating it on demand if needed), then assigns it to the selected logical volume.
 
-### AFTER: Clean, Helper-Based, DRY
-```python
-def apply_material_change(self):
-    """Apply material change to selected volume using pyg4ometry."""
-    # ... validation code ...
-    
-    try:
-        # Check if material exists in registry, create if needed
-        if new_material not in self.registry.materialDict:
-            mat = self._create_material_from_source(new_material)
-            if mat is None:
-                return
-            self.update_material_list()
-        
-        # Apply material change
-        old_material = lv.material.name if hasattr(lv.material, 'name') else str(lv.material)
-        lv.material = self.registry.materialDict[new_material]
-        
-        # Update UI
-        # ... UI update code ...
-
-def _create_material_from_source(self, material_name):
-    """Create material from selected source using pyg4ometry."""
-    import pyg4ometry.geant4 as g4
-    source = self.material_source.get()
-    
-    try:
-        if source == "nist":
-            return g4.nist_material_2geant4Material(material_name, self.registry)
-        elif source == "user":
-            mat_data = self.user_material_db.get_material(material_name)
-            if not mat_data:
-                messagebox.showerror("Error", f"Material '{material_name}' not found")
-                return None
-            return self.create_user_material_in_registry(material_name, mat_data)
-        else:
-            messagebox.showerror("Error", f"Material '{material_name}' not found")
-            return None
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to create material:\n{str(e)}")
-        return None
-```
-**Main Method: 50 lines** | **Helper: 17 lines** | **Nesting: 2-3 levels** | **DRY: Yes**
+Key methods:
+- `apply_selected_material()`
+- `_ensure_material_in_registry()`
 
 ---
 
@@ -280,7 +196,7 @@ viewer = vis.VtkViewer()
 
 | Aspect | Before | After | Improvement |
 |--------|--------|-------|-------------|
-| **Lines of Code** | ~200 | ~120 | -40% |
+| **Lines of Code** | Higher | Lower | Reduced duplication |
 | **Cyclomatic Complexity** | High (4-5 levels) | Low (2-3 levels) | -50% |
 | **Unit Conversion** | Inline if-else | Dictionary lookup | O(n) → O(1) |
 | **Element Management** | Repeated logic | Single method | DRY |
@@ -294,7 +210,7 @@ viewer = vis.VtkViewer()
 ## Architectural Patterns Applied
 
 ### 1. **Strategy Pattern**
-`_create_material_from_source()` - Different strategies for material sources
+`_ensure_material_in_registry()` - Single entry point for registry/NIST/user materials
 
 ### 2. **Factory Pattern**
 Material creation abstracted into dedicated methods

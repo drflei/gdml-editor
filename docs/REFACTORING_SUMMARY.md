@@ -151,69 +151,30 @@ def create_user_material_in_registry(self, mat_name, mat_data):
 
 ### 5. **Material Source Abstraction**
 
-**New Method:** `_create_material_from_source()`
+**Current Method:** `_ensure_material_in_registry()`
 
-Consolidates material creation logic for all sources (existing, NIST, user):
+Centralizes material lookup/creation for all material sources:
 
-```python
-def _create_material_from_source(self, material_name):
-    """Create material from selected source using pyg4ometry."""
-    source = self.material_source.get()
-    
-    try:
-        if source == "nist":
-            return g4.nist_material_2geant4Material(material_name, self.registry)
-        elif source == "user":
-            mat_data = self.user_material_db.get_material(material_name)
-            if not mat_data:
-                messagebox.showerror("Error", f"Material '{material_name}' not found")
-                return None
-            return self.create_user_material_in_registry(material_name, mat_data)
-        else:
-            messagebox.showerror("Error", f"Material '{material_name}' not found")
-            return None
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to create material:\n{str(e)}")
-        return None
-```
+- If a material already exists in the loaded registry, it is reused
+- If a name starts with `G4_`, a Geant4/NIST material is created on demand
+- Otherwise, the name is treated as a user-defined material and created from the local database
 
 **Benefits:**
 - Centralized material creation logic
 - Consistent error handling
-- Strategy pattern implementation
-- Easy to add new sources
+- Single place to extend behavior
 
-### 6. **Simplified apply_material_change()**
+### 6. **Material Apply Workflow (Current)**
 
-**Before:** 80+ lines with nested try-except blocks and repeated material creation code
+Material editing was later simplified further:
 
-**After:** Clean, readable method using helper functions
-```python
-def apply_material_change(self):
-    """Apply material change to selected volume using pyg4ometry."""
-    # ... validation code ...
-    
-    try:
-        # Check if material exists in registry, create if needed
-        if new_material not in self.registry.materialDict:
-            mat = self._create_material_from_source(new_material)
-            if mat is None:
-                return
-            self.update_material_list()
-        
-        # Apply material change
-        old_material = lv.material.name if hasattr(lv.material, 'name') else str(lv.material)
-        lv.material = self.registry.materialDict[new_material]
-        
-        # Update UI
-        # ... UI update code ...
-```
+- The GUI uses a single **Material** dropdown in the Volume Properties panel.
+- Applying a material is handled by `apply_selected_material()`, which relies on `_ensure_material_in_registry()` to create/lookup materials (registry, Geant4/NIST `G4_...`, and user-defined) and then assigns the material to the selected logical volume.
 
 **Benefits:**
-- 40% code reduction
-- Single responsibility
-- Better error flow
-- Leverages helper methods
+- One UI path for all material sources
+- On-demand creation keeps the registry consistent
+- Less widget state and fewer edge-cases
 
 ### 7. **Enhanced GDML I/O Operations**
 
@@ -258,20 +219,16 @@ viewer = vis.VtkViewer()
 
 ## Code Metrics
 
-### Lines of Code Reduction
-- `create_user_material_in_registry()`: 108 → 56 lines (-48%)
-- `apply_material_change()`: 83 → 50 lines (-40%)
-- Total core methods: ~200 → ~120 lines (-40%)
+### Notes
+This document summarizes refactoring themes (centralization, helper functions, and reduced UI state). Exact line counts may vary as the GUI evolves.
 
 ### New Helper Methods
-1. `_convert_density_to_g_cm3()` - 7 lines
-2. `_convert_temperature_to_kelvin()` - 4 lines
-3. `_convert_pressure_to_pascal()` - 9 lines
-4. `_get_or_create_element()` - 10 lines
-5. `_create_material_from_source()` - 25 lines
-
-**Total helper code:** ~55 lines
-**Net reduction:** ~25 lines while improving maintainability
+Key helpers introduced/used in current versions include:
+1. `_convert_density_to_g_cm3()`
+2. `_convert_temperature_to_kelvin()`
+3. `_convert_pressure_to_pascal()`
+4. `_get_or_create_element()`
+5. `_ensure_material_in_registry()`
 
 ### Cyclomatic Complexity Reduction
 - Before: Deep nesting (4-5 levels), multiple paths
@@ -294,7 +251,7 @@ Each method now has one clear purpose:
 
 ### 3. **Open/Closed Principle**
 - Easy to add new unit types (just extend conversion dictionaries)
-- Easy to add new material sources (just extend `_create_material_from_source`)
+- Easy to add new material sources (extend `_ensure_material_in_registry()`)
 - Easy to add new element databases
 
 ### 4. **DRY (Don't Repeat Yourself)**

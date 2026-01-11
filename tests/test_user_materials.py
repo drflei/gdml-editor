@@ -1,23 +1,17 @@
 #!/usr/bin/env python3
-"""Test script for user-defined materials feature."""
+"""Tests for user-defined materials feature."""
 
-import sys
-from pathlib import Path
+from gdml_editor.gui import UserMaterialDatabase
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent))
-
-from gdml_editor_gui import UserMaterialDatabase
-
-def test_material_database():
+def test_material_database(tmp_path):
     """Test the material database functionality."""
     
     print("=" * 60)
     print("Testing User Material Database")
     print("=" * 60)
     
-    # Create a test database in current directory
-    db = UserMaterialDatabase("test_materials.json")
+    # Create a test database in a temporary directory (avoid touching ~/.gdml_editor)
+    db = UserMaterialDatabase(tmp_path / "test_materials.json")
     
     # Test 1: Add a compound material (Water)
     print("\n1. Adding compound material: Water")
@@ -77,6 +71,7 @@ def test_material_database():
     # Test 5: List all materials
     print("\n5. Listing all materials:")
     materials = db.list_materials()
+    assert set(materials) >= {"Water", "StainlessSteel316", "LeadFluoride", "SiliconDioxide"}
     for mat in materials:
         print(f"   - {mat}")
     
@@ -104,6 +99,7 @@ def test_material_database():
     # Test 8: Remove a material
     print("\n8. Removing SiliconDioxide")
     db.remove_material('SiliconDioxide')
+    assert "SiliconDioxide" not in db.list_materials()
     print(f"   ✓ Removed. Remaining materials: {db.list_materials()}")
     
     print("\n" + "=" * 60)
@@ -112,4 +108,9 @@ def test_material_database():
     print("=" * 60)
 
 if __name__ == "__main__":
-    test_material_database()
+    # Kept for manual execution
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        test_material_database(Path(tmpdir))

@@ -4,5 +4,5 @@
 
 source ~/.venv/bin/activate
 cd ~/gdml_editor
-python -m gdml_editor.gui "$@"
+python -m gdml_editor "$@"
 

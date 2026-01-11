@@ -1,17 +1,16 @@
-# 🚀 GDML Editor - Ready to Publish!
+# GDML Editor - Project Overview and Publication Notes
 
 ## What You Have Now
 
-Your GDML Editor package is **completely ready** for publication to GitHub and PyPI. All files have been created, organized, and verified.
+This repository contains the GDML Editor GUI application plus packaging, tests, and publication helpers.
 
 ## Quick Summary
 
-- ✅ **Package Structure**: Professional Python package layout
-- ✅ **Documentation**: 10+ markdown files with complete guides
-- ✅ **Testing**: Test suite ready to run
-- ✅ **CI/CD**: GitHub Actions workflow configured
-- ✅ **Scripts**: Automated build and publication tools
-- ✅ **Verification**: All checks pass ✓
+- **Package Structure**: Python package layout
+- **Documentation**: Markdown guides under repo root and docs/
+- **Testing**: Basic test suite under tests/
+- **CI/CD**: GitHub Actions workflow
+- **Scripts**: Build/publication helpers
 
 ## 📂 What's Been Created
 
@@ -19,9 +18,8 @@ Your GDML Editor package is **completely ready** for publication to GitHub and P
 ```
 gdml_editor/
 ├── __init__.py          # Package init (v1.0.0)
-├── gui.py               # Main GUI (1400+ lines, fully featured)
-├── view_gdml.py         # GDML viewer utility
-└── run_vtkviewer.py     # VTK 3D viewer
+├── gui.py               # Main GUI application
+└── run_vtkviewer.py     # VTK 3D viewer helper (used by the GUI)
 ```
 
 ### Configuration & Setup (8 files)
@@ -51,12 +49,9 @@ gdml_editor/
 └── python-package.yml   # GitHub Actions: test, build, publish
 ```
 
-### Automation Scripts (5 files)
-- `setup_publication.sh` - **One-command interactive setup** (8.0K)
-- `publish.sh` - Build and get publication instructions (3.6K)
-- `verify_setup.py` - Package verification (3.9K)
-- `update_github_username.sh` - Update docs with your username (1.2K)
-- `launch_gui.sh` - Development launcher (189 bytes)
+### Convenience Scripts
+- `launch_gui.sh` - Development launcher
+- `view_gdml.py` - Standalone GDML viewer/converter utility
 
 ### Tests
 ```
@@ -66,53 +61,14 @@ tests/
 └── test_element_dropdown.py
 ```
 
-## 🎯 Two Ways to Publish
+## Publishing
 
-### Option 1: Fully Automated (Recommended)
-**One command does everything:**
-```bash
-cd /home/flei/gdml_editor
-./setup_publication.sh
-```
+If you want to publish to PyPI/GitHub, follow the steps in PUBLICATION_CHECKLIST.md (manual build via `python -m build` and upload via `twine`).
 
-This interactive script will:
-1. Ask for your GitHub username
-2. Update all documentation automatically
-3. Verify package setup
-4. Initialize Git repository
-5. Build the package
-6. Provide step-by-step instructions for GitHub and PyPI
-
-**Time**: ~5 minutes + following the instructions
-
-### Option 2: Manual Step-by-Step
-Follow the detailed checklist:
-```bash
-cd /home/flei/gdml_editor
-less PUBLICATION_CHECKLIST.md
-```
-
-**Time**: ~15-30 minutes
-
-## 🏃 Quick Start (3 Commands)
-
-### Fastest Path to Publication:
+## Quick Start
 
 ```bash
-# 1. Run automated setup (answers your questions)
-./setup_publication.sh
-
-# 2. Push to GitHub (after creating repo at github.com/new)
-git remote add origin https://github.com/YOUR_USERNAME/gdml-editor.git
-git push -u origin main
-
-# 3. Publish to PyPI (after getting API token)
-twine upload dist/*
-```
-
-Done! Your package is now installable via:
-```bash
-pip install gdml-editor
+./launch_gui.sh
 ```
 
 ## 📋 Publication Checklist
@@ -135,46 +91,12 @@ pip install gdml-editor
 #### 2. PyPI Account  
 - Create account at https://pypi.org/account/register/
 - Verify your email
-- Generate API token (you'll do this during setup)
+- Generate API token (needed for `twine upload`)
 
-#### 3. Run Setup Script
-```bash
-./setup_publication.sh
-```
+## Useful Commands
 
-This will guide you through everything!
-
-## 🛠️ Available Tools
-
-### 1. **setup_publication.sh** - Start here!
-Interactive script that guides you through the entire process.
-```bash
-./setup_publication.sh
-```
-
-### 2. **verify_setup.py** - Check everything is ready
-Verifies all files are in place and package imports correctly.
-```bash
-python verify_setup.py
-```
-
-### 3. **publish.sh** - Build and prepare
-Builds the package and provides upload instructions.
-```bash
-./publish.sh
-```
-
-### 4. **update_github_username.sh** - Update docs
-Updates all files with your GitHub username.
-```bash
-./update_github_username.sh YOUR_USERNAME
-```
-
-### 5. **launch_gui.sh** - Test the application
-Launch the GUI for testing.
-```bash
-./launch_gui.sh
-```
+- Run the GUI: `./launch_gui.sh`
+- Build a distribution: `python -m build`
 
 ## 📖 Documentation Reference
 
@@ -202,17 +124,10 @@ Launch the GUI for testing.
 - Dependencies automatically installed
 - Package metadata and classifiers
 
-## 🔍 Verification Status
+## Verification
 
-Run the verification to ensure everything is ready:
-```bash
-python verify_setup.py
-```
-
-Expected output:
-```
-✓ All checks passed! Package is ready for publication.
-```
+- Run the GUI: `./launch_gui.sh`
+- Run tests: `pytest tests/`
 
 ## 💡 Tips for Success
 
@@ -234,7 +149,7 @@ Expected output:
 3. 👀 Monitor GitHub Issues for feedback
 4. 🔄 Plan future enhancements
 
-## 🎁 Features Your Users Will Get
+## Features
 
 ### User-Defined Materials
 - Create custom materials with any composition
@@ -246,8 +161,10 @@ Expected output:
 ### Professional GUI
 - Browse GDML geometry hierarchies
 - 3D visualization with VTK
-- Change materials on volumes
-- Edit positions and dimensions
+- Rename logical volumes
+- Change materials on logical volumes (single dropdown: registry + Geant4/NIST + user-defined)
+- Insert/delete volumes (tree refreshes after edits)
+- Inspect solid parameters and placements in the properties panel
 - Save modified geometries
 
 ### Developer-Friendly
@@ -261,52 +178,14 @@ Expected output:
 
 - **Version**: 1.0.0
 - **Python**: 3.8+
-- **Lines of Code**: ~1,400 (main GUI)
+- **Main GUI**: gdml_editor/gui.py
 - **Dependencies**: pyg4ometry, vtk, numpy
 - **Documentation**: 40+ KB across 10+ files
 - **Tests**: 3 test files
 - **License**: MIT
 
 ## 🚦 Current Status
-
-```
-✅ Package Structure Ready
-✅ Documentation Complete
-✅ Tests Written
-✅ CI/CD Configured
-✅ Verification Passed
-✅ Build Scripts Ready
-✅ All Checks Passing
-
-🟡 Ready for Publication
-   ↓
-   Run: ./setup_publication.sh
-```
-
-## 🤝 Getting Help
-
-If you encounter any issues:
-
-1. **Check verification**: `python verify_setup.py`
-2. **Read relevant docs**: See Documentation Reference above
-3. **Review checklist**: `PUBLICATION_CHECKLIST.md`
-4. **Common issues**: See Troubleshooting section in checklist
-
-## 🎯 Next Action
-
-**Start here:**
-```bash
-cd /home/flei/gdml_editor
-./setup_publication.sh
-```
-
-This will:
-- Ask for your GitHub username
-- Update all files automatically
-- Build the package
-- Give you clear next steps
-
-**Estimated time**: 20-30 minutes to complete full publication
+See PUBLICATION_CHECKLIST.md for a manual publication walkthrough.
 
 ## 📚 Learning Resources
 
@@ -318,27 +197,4 @@ This will:
 
 ---
 
-## ✨ Final Notes
-
-This package represents:
-- ✅ Professional software engineering practices
-- ✅ Modern Python packaging standards
-- ✅ Comprehensive documentation
-- ✅ Automated testing and deployment
-- ✅ User-focused features and UX
-- ✅ Clean, maintainable code
-
-You've built something great! Now share it with the world. 🌍
-
 ---
-
-**Ready to publish? Let's go! 🚀**
-
-```bash
-./setup_publication.sh
-```
-
----
-
-*Package prepared and verified*  
-*All systems go for launch* 🎯

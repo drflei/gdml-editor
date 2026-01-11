@@ -7,7 +7,7 @@ A comprehensive user-defined materials system has been added to the GDML Editor 
 ## Implementation Components
 
 ### 1. UserMaterialDatabase Class
-**Location**: Lines 30-102 in gdml_editor_gui.py
+**Location**: In gdml_editor/gui.py
 
 **Features**:
 - JSON-based persistent storage at `~/.gdml_editor/user_materials.json`
@@ -25,7 +25,7 @@ A comprehensive user-defined materials system has been added to the GDML Editor 
 - `get_all_materials()`: Get complete materials dictionary
 
 ### 2. MaterialDefinitionDialog Class
-**Location**: Lines 105-417 in gdml_editor_gui.py
+**Location**: In gdml_editor/gui.py
 
 **Features**:
 - Modal dialog for creating/editing materials
@@ -57,7 +57,7 @@ A comprehensive user-defined materials system has been added to the GDML Editor 
   - Pressure: pascal, bar, atm
 
 ### 3. MaterialManagementDialog Class
-**Location**: Lines 420-548 in gdml_editor_gui.py
+**Location**: In gdml_editor/gui.py
 
 **Features**:
 - View all user-defined materials in a list
@@ -75,16 +75,17 @@ A comprehensive user-defined materials system has been added to the GDML Editor 
 - "Manage User Materials..." command
 
 **Material Selection UI**:
-- Added "User Defined" radio button option
-- User materials dropdown list
-- "Info" button to view material details
-- Automatic list population from database
+- Volume Properties panel contains a single **Material** dropdown
+- Dropdown values are a combined list of:
+  - materials already present in the loaded registry
+  - all Geant4/NIST `G4_...` material names (created on demand)
+  - user materials from `~/.gdml_editor/user_materials.json`
 
 **Material Application**:
-- Extended `apply_material_change()` method
-- Automatic material creation in pyg4ometry registry
-- Support for user-defined materials alongside existing and NIST materials
-- Proper unit conversions for Geant4 compatibility
+- Uses `apply_selected_material()` in the main app
+- Material creation/lookup is centralized in `_ensure_material_in_registry()`
+- Supports user-defined + existing + Geant4/NIST materials
+- Performs unit conversions for Geant4 compatibility when creating user materials
 
 ### 5. Material Creation in Registry
 **Method**: `create_user_material_in_registry(mat_name, mat_data)`
@@ -156,10 +157,9 @@ A comprehensive user-defined materials system has been added to the GDML Editor 
 ### Using a Material
 1. Open GDML file
 2. Select volume from tree
-3. Choose "User Defined" radio button
-4. Select material from dropdown
-5. Click "Apply Material Change"
-6. Material is created in registry and applied
+3. In the Volume Properties panel, select a material from the dropdown
+4. Click Apply
+5. If the material does not exist in the registry yet (e.g. a `G4_...` NIST material), it is created on demand and then applied
 
 ### Managing Materials
 1. Materials → Manage User Materials...
@@ -187,7 +187,7 @@ Materials are seamlessly integrated with pyg4ometry:
 
 ## Files Modified
 
-- **gdml_editor_gui.py**: Main application file with all new classes and methods
+- **gdml_editor/gui.py**: Main application module with all GUI classes and methods
 - **USER_MATERIALS_GUIDE.md**: Comprehensive user documentation
 - **test_user_materials.py**: Test script demonstrating database functionality
 

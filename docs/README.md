@@ -8,8 +8,8 @@ The application is located in `~/gdml_editor/` and uses the Python virtual envir
 
 ## Files
 
-- `gdml_editor_gui.py` - Main GUI application
-- `run_vtkviewer.py` - Command-line VTK viewer with material editing
+- `gdml_editor/gui.py` - Main GUI application
+- `gdml_editor/run_vtkviewer.py` - Command-line VTK viewer with material editing
 - `view_gdml.py` - GDML file viewer and converter
 - `launch_gui.sh` - Launcher script for the GUI
 
@@ -20,7 +20,7 @@ The application is located in `~/gdml_editor/` and uses the Python virtual envir
 ```bash
 cd ~/gdml_editor
 source ~/.venv/bin/activate
-python gdml_editor_gui.py
+python -m gdml_editor.gui
 ```
 
 Or use the launcher:
@@ -36,17 +36,17 @@ cd ~/gdml_editor
 source ~/.venv/bin/activate
 
 # View GDML file
-python run_vtkviewer.py file.gdml
+python -m gdml_editor.run_vtkviewer file.gdml
 
 # List volumes and materials
-python run_vtkviewer.py file.gdml --list-volumes
-python run_vtkviewer.py file.gdml --list-materials
+python -m gdml_editor.run_vtkviewer file.gdml --list-volumes
+python -m gdml_editor.run_vtkviewer file.gdml --list-materials
 
 # Change materials
-python run_vtkviewer.py file.gdml --change-material PbF2_Radiator G4_WATER
+python -m gdml_editor.run_vtkviewer file.gdml --change-material PbF2_Radiator G4_WATER
 
 # Multiple changes and save
-python run_vtkviewer.py file.gdml \
+python -m gdml_editor.run_vtkviewer file.gdml \
   --change-material Volume1 G4_WATER \
   --change-material Volume2 G4_Al \
   --save modified.gdml

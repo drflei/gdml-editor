@@ -1,8 +1,8 @@
-# GDML Editor - Package Ready for Publication! 🚀
+# GDML Editor - Package Overview
 
 ## Summary
 
-The GDML Editor package has been successfully prepared for publication to GitHub and PyPI. All necessary files have been created, organized, and verified.
+This repository contains the GDML Editor GUI application, documentation, and tests.
 
 ## Package Structure
 
@@ -21,7 +21,6 @@ gdml_editor/
 ├── gdml_editor/                    # Main package
 │   ├── __init__.py                 # Package initialization (v1.0.0)
 │   ├── gui.py                      # Main GUI application
-│   ├── view_gdml.py                # GDML viewer utility
 │   └── run_vtkviewer.py            # VTK viewer utility
 ├── tests/
 │   ├── test_user_materials.py      # User materials tests
@@ -39,20 +38,13 @@ gdml_editor/
 ├── requirements.txt                # Dependencies
 ├── setup.py                        # Setup script
 ├── launch_gui.sh                   # Development launch script
-├── publish.sh                      # Automated publication script
-└── verify_setup.py                 # Package verification script
+└── view_gdml.py                    # Standalone GDML viewer/converter utility
 ```
 
-## Verification Results ✓
+## Verification
 
-All checks passed successfully:
-- ✅ Core package structure in place
-- ✅ Setup files configured (setup.py, pyproject.toml)
-- ✅ Documentation complete (README, guides, API docs)
-- ✅ CI/CD pipeline configured (GitHub Actions)
-- ✅ Development tools ready (tests, scripts)
-- ✅ Package imports correctly (v1.0.0)
-- ✅ All dependencies available
+- Runs locally via `./launch_gui.sh`
+- Imports via `python -m gdml_editor.gui`
 
 ## Key Features Implemented
 
@@ -115,28 +107,19 @@ python -m gdml_editor.gui
 
 ### Create Custom Material
 1. Open GDML Editor
-2. Materials → User Materials (Ctrl+M)
-3. Add New Material
-4. Configure properties and elements
-5. Save and apply to volumes
+2. Materials → Define New Material...
+3. Configure properties and elements
+4. Save the material
+5. Select a volume and apply it via the Volume Properties material dropdown
 
 ## Next Steps - Publication Workflow
 
-### Quick Start (3 steps)
+### Build & Upload (manual)
 ```bash
-# 1. Run publication script
 cd /home/flei/gdml_editor
-./publish.sh
-
-# 2. Create GitHub repository at https://github.com/new
-# Name: gdml-editor
-
-# 3. Push code
-git remote add origin https://github.com/drflei/gdml-editor.git
-git branch -M main
-git push -u origin main
-
-# 4. Publish to PyPI
+pip install --upgrade build twine
+python -m build
+twine check dist/*
 twine upload dist/*
 ```
 
@@ -170,8 +153,6 @@ See [PUBLICATION_CHECKLIST.md](PUBLICATION_CHECKLIST.md) for complete step-by-st
   - Runs tests on push and PR
   - Builds package
   - Auto-publishes to PyPI on release
-- **publish.sh**: One-command build and publish
-- **verify_setup.py**: Package verification
 
 ### Development
 - **tests/**: Unit tests for all features
@@ -239,7 +220,7 @@ TEMPERATURE_FACTORS = {
 
 ## Statistics
 
-- **Lines of Code**: ~1,400 (main GUI)
+- **Main GUI**: gdml_editor/gui.py
 - **Code Reduction**: 40% after refactoring
 - **Elements Supported**: 118 (periodic table)
 - **Documentation Pages**: 10 (README + guides)
@@ -318,11 +299,8 @@ Once published, you'll know it's working when:
 ## Quick Commands Reference
 
 ```bash
-# Verify package
-python verify_setup.py
-
 # Build package
-./publish.sh
+python -m build
 
 # Run tests
 pytest tests/
@@ -345,23 +323,6 @@ twine upload dist/*
 
 ---
 
-## 🎉 Package is Ready! 🎉
-
-Everything is prepared and verified. Follow the [PUBLICATION_CHECKLIST.md](PUBLICATION_CHECKLIST.md) to complete the publication process.
-
-**Estimated Time to Publish**: 15-30 minutes
-
-**Steps Remaining**:
-1. Initialize Git repository
-2. Create GitHub repository
-3. Push code to GitHub
-4. Build package with `./publish.sh`
-5. Create PyPI account
-6. Upload to PyPI with `twine`
-
-**Good luck with your publication! 🚀**
-
 ---
 
-*Package prepared on: $(date)*
-*Ready for GitHub and PyPI publication*
+For publication steps, see [PUBLICATION_CHECKLIST.md](PUBLICATION_CHECKLIST.md).

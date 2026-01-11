@@ -19,7 +19,7 @@ Use this checklist to ensure a smooth publication process to GitHub and PyPI.
 - [x] CI/CD workflow configured (`.github/workflows/`)
 - [x] `CHANGELOG.md` documenting changes
 - [x] `CONTRIBUTING.md` with guidelines
-- [x] Verification script passed (`./verify_setup.py`)
+- [x] Local import/run verified
 
 ## GitHub Publication
 
@@ -87,11 +87,6 @@ git push -u origin main
 ### Step 6: Build Package
 ```bash
 cd /home/flei/gdml_editor
-./publish.sh
-```
-
-Or manually:
-```bash
 # Install build tools
 pip install --upgrade build twine
 
