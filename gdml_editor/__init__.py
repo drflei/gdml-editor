@@ -9,7 +9,7 @@ This package provides tools for:
 - Changing materials on logical volumes
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __author__ = "GDML Editor Contributors"
 
 # Lazy imports to avoid circular import issues when running as module

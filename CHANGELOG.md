@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Planned
+- Material import/export (CSV, XML)
+- Material templates library
+- Optical properties support
+- Batch material operations
+- Element tooltips with properties
+- Recently used materials
+- Material comparison tools
+
+## [1.0.1] - 2026-01-11
+
+### Changed
+- Removed unused publication helper scripts and `.bak` files; updated docs accordingly
+- Updated tests to import `gdml_editor.gui` and added `tests/conftest.py` for reliable imports
+- Kept VTK viewer launch using the in-package `gdml_editor/run_vtkviewer.py` (no root fallback)
+
 ## [1.0.0] - 2026-01-09
 
 ### Added
@@ -47,14 +65,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Element caching in registry
 - Type-ahead autocomplete
 - Comprehensive test suite
-
-## [Unreleased]
-
-### Planned
-- Material import/export (CSV, XML)
-- Material templates library
-- Optical properties support
-- Batch material operations
-- Element tooltips with properties
-- Recently used materials
-- Material comparison tools
