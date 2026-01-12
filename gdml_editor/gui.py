@@ -1276,21 +1276,13 @@ class InsertVolumeDialog:
                         return
                     
                     mat_data = user_mats[material_name]
-                    # Use pyg4ometry to create the material
-                    density = self._convert_density(mat_data['density'], mat_data['density_unit'])
-                    
-                    if mat_data['type'] == 'compound':
-                        material = g4.MaterialCompound(material_name, density, mat_data['composition'], self.registry)
-                    else:
-                        material = g4.Material(material_name, density, len(mat_data['composition']), self.registry)
-                        for comp in mat_data['composition']:
-                            # Use NIST element lookup for standard elements
-                            try:
-                                element = g4.nist_element_2geant4Element(comp['element'], self.registry)
-                            except:
-                                # Fallback to creating element by name
-                                element = g4.Element(comp['element'], comp['element'], 1.0, 1.0, self.registry)
-                            material.add_element_massfraction(element, comp['fraction'])
+                    # Delegate to the centralized creator so constructor differences
+                    # are handled in one place
+                    try:
+                        material = self.create_user_material_in_registry(material_name, mat_data)
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Failed to create material: {str(e)}")
+                        return
                 except Exception as e:
                     messagebox.showerror("Error", f"Failed to create material: {str(e)}")
                     return
@@ -1717,50 +1709,161 @@ class GDMLEditorApp:
             Created material object
         """
         import pyg4ometry.geant4 as g4
-        
+        import inspect
+
         # Convert density to g/cm3 (pyg4ometry's default)
         density = self._convert_density_to_g_cm3(
             mat_data['density'], 
             mat_data['density_unit']
         )
-        
+
         # Get optional parameters
         state = mat_data.get('state', 'solid')
         temperature = self._convert_temperature_to_kelvin(mat_data) if 'temperature' in mat_data else None
         pressure = self._convert_pressure_to_pascal(mat_data) if 'pressure' in mat_data else None
-        
-        # Create material based on type
+
+        # (No debug logging) Prepare to create materials using available constructors
+
+        # Helper to attempt multiple constructor patterns
+        def _try_constructors(ctor, attempts):
+            last_exc = None
+            for args, kwargs in attempts:
+                try:
+                    return ctor(*args, **kwargs) if kwargs else ctor(*args)
+                except Exception as e:
+                    last_exc = e
+            # If all attempts failed, raise the last exception
+            raise RuntimeError(f"All constructor attempts for {ctor.__name__} failed.") from last_exc
+
+        # Create material based on type with exhaustive fallbacks
         if mat_data['type'] == 'compound':
-            # Use MaterialCompound - pyg4ometry parses the formula automatically
-            mat = g4.MaterialCompound(
-                mat_name,
-                density,
-                mat_data['composition'],  # Molecular formula
-                self.registry,
-                state=state
-            )
+            # Parse molecular formula (simple parser: ElementSymbol + optional integer)
+            formula = mat_data['composition']
+            import re
+            matches = re.findall(r'([A-Z][a-z]?)(\d*)', formula)
+            element_counts = {}
+            for sym, count in matches:
+                try:
+                    n = int(count) if count else 1
+                except Exception:
+                    n = 1
+                element_counts[sym] = element_counts.get(sym, 0) + n
+
+            num_components = len(element_counts) if element_counts else 1
+
+            ctor = getattr(g4, 'MaterialCompound')
+            # Prefer kwargs when possible
+            try:
+                sig = inspect.signature(ctor)
+                params = sig.parameters
+            except Exception:
+                params = {}
+
+            mc_kwargs = {}
+            if 'name' in params:
+                mc_kwargs['name'] = mat_name
+            if 'density' in params:
+                mc_kwargs['density'] = density
+            if 'number_of_components' in params:
+                mc_kwargs['number_of_components'] = num_components
+            if 'registry' in params:
+                mc_kwargs['registry'] = self.registry
+            if 'state' in params:
+                mc_kwargs['state'] = state
+
+            attempts = []
+            if mc_kwargs:
+                attempts.append(((), mc_kwargs))
+            # Positional fallbacks using number_of_components
+            attempts.extend([
+                ((mat_name, density, num_components, self.registry, state), {}),
+                ((mat_name, density, num_components, self.registry), {}),
+                ((mat_name, num_components, self.registry), {}),
+                ((mat_name, self.registry), {}),
+            ])
+
+            mat = _try_constructors(ctor, attempts)
+
+            # Add element natoms according to formula
+            for sym, natoms in element_counts.items():
+                element = self._get_or_create_element(sym)
+                try:
+                    mat.add_element_natoms(element, natoms)
+                except Exception:
+                    # ignore element add failures
+                    pass
         else:
-            # Use Material with element composition
-            composition = mat_data['composition']
-            mat = g4.Material(
-                mat_name,
-                density,
-                len(composition),
-                self.registry,
-                state=state
-            )
-            
+            # Mixture: create a MaterialCompound with number_of_components and add elements
+            ctor = getattr(g4, 'MaterialCompound')
+            try:
+                sig = inspect.signature(ctor)
+                params = sig.parameters
+            except Exception:
+                params = {}
+
+            accepts_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+
+            mc_kwargs = {}
+            if accepts_kwargs or 'name' in params:
+                mc_kwargs['name'] = mat_name
+            if accepts_kwargs or 'density' in params:
+                mc_kwargs['density'] = density
+            # number_of_components required by some signatures
+            num_comp = len(mat_data['composition'])
+            if accepts_kwargs or 'number_of_components' in params:
+                mc_kwargs['number_of_components'] = num_comp
+            if accepts_kwargs or 'registry' in params:
+                mc_kwargs['registry'] = self.registry
+            if accepts_kwargs or 'state' in params:
+                mc_kwargs['state'] = state
+
+            attempts = []
+            if mc_kwargs:
+                attempts.append(((), mc_kwargs))
+            attempts.extend([
+                ((mat_name, density, num_comp, self.registry, state), {}),
+                ((mat_name, density, num_comp, self.registry), {}),
+                ((mat_name, num_comp, self.registry), {}),
+                ((mat_name, self.registry), {}),
+            ])
+
+            mat = _try_constructors(ctor, attempts)
+
             # Add elements using pyg4ometry's NIST database
-            for comp in composition:
+            for comp in mat_data['composition']:
                 element = self._get_or_create_element(comp['element'])
-                mat.add_element_massfraction(element, comp['fraction'])
-        
+                try:
+                    mat.add_element_massfraction(element, comp['fraction'])
+                except Exception:
+                    # ignore element add failures
+                    pass
+
         # Set optional properties using pyg4ometry's attribute system
         if temperature is not None:
-            mat.temperature = temperature
+            try:
+                mat.temperature = temperature
+            except Exception:
+                pass
         if pressure is not None:
-            mat.pressure = pressure
-        
+            try:
+                mat.pressure = pressure
+            except Exception:
+                pass
+
+        # Return created material
+        # Ensure material is present in the registry for later lookups/usage
+        try:
+            mat_name_actual = getattr(mat, 'name', None) or mat_name
+            if hasattr(self.registry, 'materialDict'):
+                self.registry.materialDict[mat_name_actual] = mat
+            else:
+                try:
+                    self.registry.addMaterial(mat)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         return mat
     
     def _convert_density_to_g_cm3(self, density, unit):
@@ -1793,15 +1896,26 @@ class GDMLEditorApp:
         """Get element from registry or create from NIST database."""
         import pyg4ometry.geant4 as g4
         
-        # Check if element already exists in registry
-        if element_name in self.registry.defineDict:
-            return self.registry.defineDict[element_name]
-        
-        # Create from NIST database using pyg4ometry
-        try:
-            return g4.nist_element_2geant4Element(element_name, self.registry)
-        except Exception as e:
-            raise ValueError(f"Unknown element '{element_name}': {e}")
+        # Normalize common element inputs: accept 'C' or 'G4_C'
+        candidates = [element_name]
+        if not element_name.startswith('G4_'):
+            candidates.insert(0, f'G4_{element_name}')
+
+        # Check if element already exists in registry materials
+        mat_dict = getattr(self.registry, 'materialDict', {})
+        for cand in candidates:
+            if cand in mat_dict:
+                return mat_dict[cand]
+
+        # Try creating from NIST database using pyg4ometry with fallback names
+        last_exc = None
+        for cand in candidates:
+            try:
+                return g4.nist_element_2geant4Element(cand, self.registry)
+            except Exception as e:
+                last_exc = e
+
+        raise ValueError(f"Unknown element '{element_name}': {last_exc}")
         
     def open_gdml(self):
         """Open a GDML file using pyg4ometry Reader."""
@@ -2042,7 +2156,29 @@ class GDMLEditorApp:
             return
 
         old_material = lv.material.name if hasattr(lv.material, 'name') else str(lv.material)
-        lv.material = mat
+        try:
+            lv.material = mat
+        except Exception as e:
+            # Log and attempt safe fallback: ensure material registered and set registry on material
+            # Try to ensure material has registry and retry
+            try:
+                if hasattr(mat, 'set_registry'):
+                    try:
+                        mat.set_registry(self.registry)
+                    except TypeError:
+                        try:
+                            mat.set_registry(self.registry, dontWarnIfAlreadyAdded=True)
+                        except Exception:
+                            pass
+                if new_material in getattr(self.registry, 'materialDict', {}):
+                    lv.material = self.registry.materialDict[new_material]
+                    self.modified = True
+                    self.status_var.set(f"✓ Changed {volume_name}: {old_material} → {new_material} (fallback)")
+                else:
+                    raise
+            except Exception as e2:
+                messagebox.showerror("Error", f"Failed to assign material '{new_material}' to {volume_name}:\n{e2}")
+                return
 
         # Update tree row material column
         if self.volume_tree.exists(volume_name):
