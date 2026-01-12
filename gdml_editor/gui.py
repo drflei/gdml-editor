@@ -1585,10 +1585,16 @@ class GDMLEditorApp:
         materials_menu.add_command(label="Define New Material...", command=self.define_new_material)
         materials_menu.add_command(label="Manage User Materials...", command=self.manage_user_materials)
         
+        # Tools menu
+        tools_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Tools", menu=tools_menu)
+        tools_menu.add_command(label="Check Overlaps...", command=self.check_overlaps, state=tk.DISABLED)
+        
         self.file_menu = file_menu
         self.view_menu = view_menu
         self.edit_menu = edit_menu
         self.materials_menu = materials_menu
+        self.tools_menu = tools_menu
         
         # Main container with paned window
         main_paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
@@ -1835,6 +1841,7 @@ class GDMLEditorApp:
             self.edit_menu.entryconfig("Insert Volume...", state=tk.NORMAL)
             self.edit_menu.entryconfig("Insert from GDML...", state=tk.NORMAL)
             self.edit_menu.entryconfig("Delete Volume...", state=tk.NORMAL)
+            self.tools_menu.entryconfig("Check Overlaps...", state=tk.NORMAL)
             
             self.status_var.set(f"Loaded: {Path(filename).name}")
             messagebox.showinfo("Success", f"Successfully loaded {Path(filename).name}")
@@ -2445,6 +2452,166 @@ class GDMLEditorApp:
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to delete volume:\n{str(e)}")
+    
+    def check_overlaps(self):
+        """Check geometry for overlaps using pyg4ometry's mesh-based overlap detection."""
+        if not self.registry:
+            messagebox.showerror("Error", "No geometry loaded")
+            return
+        
+        # Create progress dialog
+        progress_window = tk.Toplevel(self.root)
+        progress_window.title("Checking Overlaps")
+        progress_window.geometry("600x400")
+        progress_window.transient(self.root)
+        progress_window.grab_set()
+        
+        ttk.Label(progress_window, text="Running overlap check...", 
+                 font=('TkDefaultFont', 10, 'bold')).pack(pady=10)
+        
+        # Text widget for results
+        result_frame = ttk.Frame(progress_window)
+        result_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        result_text = tk.Text(result_frame, wrap=tk.WORD, height=15, font=('Courier', 9))
+        result_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        result_scroll = ttk.Scrollbar(result_frame, command=result_text.yview)
+        result_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        result_text.config(yscrollcommand=result_scroll.set)
+        
+        # Close button
+        ttk.Button(progress_window, text="Close", command=progress_window.destroy).pack(pady=10)
+        
+        result_text.insert(tk.END, "Initializing overlap check...\\n")
+        result_text.insert(tk.END, "="*60 + "\\n\\n")
+        result_text.update()
+        
+        try:
+            import pyg4ometry
+            
+            # Get world volume
+            world_lv = self.registry.worldVolume
+            if not world_lv:
+                result_text.insert(tk.END, "Error: No world volume found\\n")
+                return
+            
+            # Check if geometry contains tessellated solids
+            has_tessellated = False
+            total_volumes = 0
+            
+            def check_for_tessellated(lv):
+                nonlocal has_tessellated, total_volumes
+                total_volumes += 1
+                if hasattr(lv.solid, 'type') and lv.solid.type == 'TessellatedSolid':
+                    has_tessellated = True
+                    return
+                for pv in lv.daughterVolumes:
+                    if hasattr(pv, 'logicalVolume'):
+                        check_for_tessellated(pv.logicalVolume)
+            
+            check_for_tessellated(world_lv)
+            
+            result_text.insert(tk.END, f"World volume: {world_lv.name}\\n")
+            result_text.insert(tk.END, f"Total volumes: {total_volumes}\\n")
+            result_text.insert(tk.END, f"Daughter volumes: {len(world_lv.daughterVolumes)}\\n\\n")
+            
+            if has_tessellated:
+                result_text.insert(tk.END, "⚠ WARNING: Tessellated Solids Detected\\n")
+                result_text.insert(tk.END, "="*60 + "\\n\\n")
+                result_text.insert(tk.END, "This geometry contains tessellated solids (STL meshes).\\n\\n")
+                result_text.insert(tk.END, "pyg4ometry's mesh-based overlap checking can crash\\n")
+                result_text.insert(tk.END, "on complex tessellated geometries due to CGAL library\\n")
+                result_text.insert(tk.END, "limitations with high polygon counts.\\n\\n")
+                result_text.insert(tk.END, "Recommended alternatives:\\n\\n")
+                result_text.insert(tk.END, "1. Visual inspection:\\n")
+                result_text.insert(tk.END, "   Use the VTK viewer to visually inspect overlaps\\n\\n")
+                result_text.insert(tk.END, "2. Export and check in Geant4:\\n")
+                result_text.insert(tk.END, "   a) Save the GDML file\\n")
+                result_text.insert(tk.END, "   b) Create a Geant4 macro with:\\n")
+                result_text.insert(tk.END, "      /geometry/test/run\\n\\n")
+                result_text.insert(tk.END, "3. Simplify STL meshes:\\n")
+                result_text.insert(tk.END, "   Reduce polygon count before conversion\\n\\n")
+                result_text.update()
+                return
+            
+            result_text.insert(tk.END, f"Checking {len(world_lv.daughterVolumes)} daughter volumes\\n\\n")
+            result_text.insert(tk.END, "This uses mesh-based overlap detection.\\n")
+            result_text.insert(tk.END, "Checking for:\\n")
+            result_text.insert(tk.END, "  • Daughter-daughter overlaps\\n")
+            result_text.insert(tk.END, "  • Coplanar surface overlaps\\n")
+            result_text.insert(tk.END, "  • Protrusions from mother volume\\n\\n")
+            result_text.update()
+            
+            # Counter for overlaps
+            n_overlaps = [0]
+            
+            # Redirect logging to capture overlap messages
+            import logging
+            import io
+            log_capture = io.StringIO()
+            handler = logging.StreamHandler(log_capture)
+            handler.setLevel(logging.ERROR)
+            logger = logging.getLogger('pyg4ometry.geant4.LogicalVolume')
+            old_level = logger.level
+            logger.addHandler(handler)
+            logger.setLevel(logging.ERROR)
+            
+            try:
+                result_text.insert(tk.END, "Running overlap checks (this may take a while)...\\n")
+                result_text.insert(tk.END, "\\nNote: Overlap checking on tessellated/STL geometries\\n")
+                result_text.insert(tk.END, "may be slow or unstable due to mesh complexity.\\n\\n")
+                result_text.update()
+                
+                try:
+                    # Call checkOverlaps on the world logical volume
+                    # This will recursively check all daughter volumes
+                    world_lv.checkOverlaps(recursive=True, coplanar=True, printOut=False, nOverlapsDetected=n_overlaps)
+                    
+                    # Get logged overlap messages
+                    log_output = log_capture.getvalue()
+                    
+                    result_text.insert(tk.END, "\\n" + "="*60 + "\\n")
+                    result_text.insert(tk.END, "OVERLAP CHECK RESULTS\\n")
+                    result_text.insert(tk.END, "="*60 + "\\n\\n")
+                    
+                    if n_overlaps[0] > 0:
+                        result_text.insert(tk.END, f"⚠ FOUND {n_overlaps[0]} OVERLAP(S)\\n\\n")
+                        if log_output:
+                            result_text.insert(tk.END, "Details:\\n")
+                            result_text.insert(tk.END, "-" * 60 + "\\n")
+                            result_text.insert(tk.END, log_output)
+                        result_text.insert(tk.END, "\\n" + "-" * 60 + "\\n")
+                        result_text.insert(tk.END, "\\nYou can visualize the overlaps by viewing the geometry.\\n")
+                        result_text.insert(tk.END, "Overlaps will be highlighted in the VTK viewer.\\n")
+                    else:
+                        result_text.insert(tk.END, "✓ No overlaps detected\\n\\n")
+                        result_text.insert(tk.END, "Geometry appears to be valid!\\n")
+                        
+                except (MemoryError, SystemError, OSError) as mesh_error:
+                    result_text.insert(tk.END, "\\n" + "="*60 + "\\n")
+                    result_text.insert(tk.END, "⚠ OVERLAP CHECK FAILED\\n")
+                    result_text.insert(tk.END, "="*60 + "\\n\\n")
+                    result_text.insert(tk.END, f"Error: {str(mesh_error)}\\n\\n")
+                    result_text.insert(tk.END, "The mesh-based overlap checking failed, possibly due to:\\n")
+                    result_text.insert(tk.END, "  • Very complex tessellated/STL geometries\\n")
+                    result_text.insert(tk.END, "  • High polygon count meshes\\n")
+                    result_text.insert(tk.END, "  • Memory constraints\\n\\n")
+                    result_text.insert(tk.END, "Consider:\\n")
+                    result_text.insert(tk.END, "  • Simplifying STL meshes before conversion\\n")
+                    result_text.insert(tk.END, "  • Checking overlaps in Geant4 directly\\n")
+                    result_text.insert(tk.END, "  • Using VTK viewer for visual inspection\\n")
+                
+            finally:
+                logger.removeHandler(handler)
+                logger.setLevel(old_level)
+            
+            result_text.see(tk.END)
+            
+        except Exception as e:
+            result_text.insert(tk.END, f"\\nError during overlap check:\\n{str(e)}\\n\\n")
+            import traceback
+            result_text.insert(tk.END, traceback.format_exc())
     
     def view_in_vtk(self):
         """Launch VTK viewer for current geometry in a separate process with auto-refresh."""
