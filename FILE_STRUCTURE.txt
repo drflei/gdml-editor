@@ -47,7 +47,7 @@ Root Directory (publication-ready package)
 │   ├── publish.sh                      Build & publish script (3.6K)
 │   ├── verify_setup.py                 Package verification (3.9K)
 │   ├── update_github_username.sh       Update docs with username (1.2K)
-│   └── launch_gui.sh                   Development launcher (189 bytes)
+│   └── gdml_editor.sh                  Development launcher (189 bytes)
 │
 ├── 📋 REFERENCE FILES
 │   ├── FILE_STRUCTURE.txt              This file
@@ -117,7 +117,7 @@ Quick Start Commands
    $ ./publish.sh
 
 4. Test Application:
-   $ ./launch_gui.sh
+   $ ./gdml_editor.sh
 
 Documentation Reading Order
 ===========================

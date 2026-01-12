@@ -11,7 +11,7 @@ The application is located in `~/gdml_editor/` and uses the Python virtual envir
 - `gdml_editor/gui.py` - Main GUI application
 - `gdml_editor/run_vtkviewer.py` - Command-line VTK viewer with material editing
 - `view_gdml.py` - GDML file viewer and converter
-- `launch_gui.sh` - Launcher script for the GUI
+- `gdml_editor.sh` - Launcher script for the GUI
 
 ## Usage
 
@@ -25,7 +25,7 @@ python -m gdml_editor.gui
 
 Or use the launcher:
 ```bash
-~/gdml_editor/launch_gui.sh
+~/gdml_editor/gdml_editor.sh
 ```
 
 ### Command-Line Tools

@@ -499,6 +499,282 @@ class MaterialDefinitionDialog:
             messagebox.showerror("Error", f"Failed to save material: {e}")
 
 
+class InsertGDMLDialog:
+    """Dialog for inserting volumes from another GDML file."""
+    
+    def __init__(self, parent, registry, world_lv):
+        self.result = None
+        self.registry = registry
+        self.world_lv = world_lv
+        self.ext_registry = None
+        
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Insert GDML File")
+        self.dialog.geometry("600x800")
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        self.setup_ui()
+        
+    def setup_ui(self):
+        main_frame = ttk.Frame(self.dialog, padding=10)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # File Selection
+        file_frame = ttk.Frame(main_frame)
+        file_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(file_frame, text="GDML File:", width=15).pack(side=tk.LEFT)
+        self.file_path = tk.StringVar()
+        ttk.Entry(file_frame, textvariable=self.file_path, width=40).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        ttk.Button(file_frame, text="Browse...", command=self.browse_file).pack(side=tk.LEFT)
+        
+        # Volume Selection (Source)
+        src_vol_frame = ttk.LabelFrame(main_frame, text="Select Volumes to Import", padding=5)
+        src_vol_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # Treeview for checklist
+        tree_scroll = ttk.Scrollbar(src_vol_frame)
+        tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self.vol_tree = ttk.Treeview(src_vol_frame, columns=("status",), show="tree headings", 
+                                    selectmode="extended", yscrollcommand=tree_scroll.set)
+        self.vol_tree.heading("#0", text="Volume Name")
+        self.vol_tree.heading("status", text="Status")
+        self.vol_tree.column("#0", width=250)
+        self.vol_tree.column("status", width=100)
+        self.vol_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        tree_scroll.config(command=self.vol_tree.yview)
+        
+        ttk.Label(src_vol_frame, text="Use Shift/Ctrl to select multiple", 
+                 font=('TkDefaultFont', 8, 'italic')).pack(side=tk.BOTTOM, anchor=tk.W)
+
+        # Parent Volume
+        parent_frame = ttk.Frame(main_frame)
+        parent_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(parent_frame, text="Parent Volume:", width=15).pack(side=tk.LEFT)
+        self.parent_var = tk.StringVar(value=self.world_lv.name)
+        volumes = sorted(list(self.registry.logicalVolumeDict.keys()))
+        ttk.Combobox(parent_frame, textvariable=self.parent_var, values=volumes, state='readonly', width=30).pack(side=tk.LEFT, padx=5)
+
+        # Name Conflict Resolution
+        conflict_frame = ttk.LabelFrame(main_frame, text="Name Conflict Resolution", padding=10)
+        conflict_frame.pack(fill=tk.X, pady=5)
+        
+        self.add_suffix = tk.BooleanVar(value=True)
+        ttk.Checkbutton(conflict_frame, text="Auto-rename clashes with suffix (_imported)", 
+                        variable=self.add_suffix).pack(anchor=tk.W)
+        
+        prefix_frame = ttk.Frame(conflict_frame)
+        prefix_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(prefix_frame, text="OR Add Prefix to clashing volumes:").pack(side=tk.LEFT)
+        self.prefix_var = tk.StringVar()
+        ttk.Entry(prefix_frame, textvariable=self.prefix_var, width=15).pack(side=tk.LEFT, padx=5)
+        
+        self.warn_clashes = tk.BooleanVar(value=False)
+        ttk.Checkbutton(conflict_frame, text="Warn on clashes", 
+                       variable=self.warn_clashes).pack(anchor=tk.W)
+
+        # Merge Options
+        opt_frame = ttk.LabelFrame(main_frame, text="Merge Options", padding=10)
+        opt_frame.pack(fill=tk.X, pady=5)
+        
+        self.drop_dup_materials = tk.BooleanVar(value=True)
+        ttk.Checkbutton(opt_frame, text="Drop duplicate materials (use existing if name matches)", 
+                       variable=self.drop_dup_materials).pack(anchor=tk.W)
+        
+        # Transform
+        trans_frame = ttk.LabelFrame(main_frame, text="Transformation (Target PV)", padding=10)
+        trans_frame.pack(fill=tk.X, pady=5)
+
+        # Units
+        unit_frame = ttk.Frame(trans_frame)
+        unit_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(unit_frame, text="Length Unit:", width=10).pack(side=tk.LEFT)
+        self.length_unit = tk.StringVar(value="mm")
+        ttk.Combobox(unit_frame, textvariable=self.length_unit, values=["mm", "cm", "m"], 
+                    state="readonly", width=5).pack(side=tk.LEFT)
+        
+        # Pos
+        pos_grid = ttk.Frame(trans_frame)
+        pos_grid.pack(fill=tk.X, pady=5)
+        ttk.Label(pos_grid, text="Position (X, Y, Z):").pack(side=tk.LEFT, padx=5)
+        self.pos_x = tk.StringVar(value="0")
+        self.pos_y = tk.StringVar(value="0")
+        self.pos_z = tk.StringVar(value="0")
+        for v in [self.pos_x, self.pos_y, self.pos_z]:
+            ttk.Entry(pos_grid, textvariable=v, width=8).pack(side=tk.LEFT, padx=2)
+            
+        # Rot
+        rot_grid = ttk.Frame(trans_frame)
+        rot_grid.pack(fill=tk.X, pady=5)
+        ttk.Label(rot_grid, text="Rotation (deg X, Y, Z):").pack(side=tk.LEFT, padx=5)
+        self.rot_x = tk.StringVar(value="0")
+        self.rot_y = tk.StringVar(value="0")
+        self.rot_z = tk.StringVar(value="0")
+        for v in [self.rot_x, self.rot_y, self.rot_z]:
+            ttk.Entry(rot_grid, textvariable=v, width=8).pack(side=tk.LEFT, padx=2)
+
+        # Buttons
+        btn_frame = ttk.Frame(main_frame)
+        btn_frame.pack(fill=tk.X, pady=10)
+        ttk.Button(btn_frame, text="Cancel", command=self.dialog.destroy).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(btn_frame, text="Insert Selected", command=self.insert).pack(side=tk.RIGHT, padx=5)
+
+    def browse_file(self):
+        f = filedialog.askopenfilename(filetypes=[("GDML Files", "*.gdml"), ("All Files", "*.*")])
+        if f: 
+            self.file_path.set(f)
+            self.load_external_file(f)
+            
+    def load_external_file(self, path):
+        try:
+            import pyg4ometry.gdml as gdml
+            
+            # Load the external registry
+            reader = gdml.Reader(path)
+            self.ext_registry = reader.getRegistry()
+            ext_world = self.ext_registry.getWorldVolume()
+            
+            # Clear tree
+            self.vol_tree.delete(*self.vol_tree.get_children())
+            
+            # Populate volumes list
+            vols = sorted(list(self.ext_registry.logicalVolumeDict.keys()))
+            
+            to_select = []
+            
+            for vname in vols:
+                status = ""
+                tags = ()
+                if vname in self.registry.logicalVolumeDict:
+                    status = "Clash"
+                    tags = ('clash',)
+                else:
+                    status = "New"
+                    to_select.append(vname)
+                
+                self.vol_tree.insert("", "end", iid=vname, text=vname, values=(status,), tags=tags)
+            
+            self.vol_tree.tag_configure('clash', foreground='red')
+            
+            # Select no-clashing volumes by default
+            if to_select:
+                self.vol_tree.selection_set(to_select)
+            
+            # Autoscroll to world if possible, or top
+            if ext_world and ext_world.name in to_select:
+                self.vol_tree.see(ext_world.name)
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to parse GDML file: {e}")
+            self.ext_registry = None
+
+    def insert(self):
+        path = self.file_path.get()
+        if not path or not self.ext_registry:
+            messagebox.showerror("Error", "No valid GDML file loaded")
+            return
+            
+        selected_items = self.vol_tree.selection()
+        if not selected_items:
+            messagebox.showwarning("No Selection", "Please select at least one volume to import")
+            return
+            
+        try:
+            import pyg4ometry.geant4 as g4
+            
+            ext_reg = self.ext_registry
+            
+            # First, transfer all defines from external registry to avoid reference issues
+            print("Transferring defines...")
+            for define_name, define_obj in ext_reg.defineDict.items():
+                if define_name not in self.registry.defineDict:
+                    try:
+                        # Use transferDefine if available
+                        if hasattr(self.registry, 'transferDefine'):
+                            self.registry.transferDefine(define_obj)
+                        else:
+                            # Manual transfer
+                            define_obj.registry = self.registry
+                            self.registry.defineDict[define_name] = define_obj
+                    except Exception as e:
+                        print(f"Warning transferring define {define_name}: {e}")
+            
+            # Get parent for placement
+            parent_lv = self.registry.logicalVolumeDict[self.parent_var.get()]
+            
+            # Transfer parameters
+            unit_scale = {'mm': 1.0, 'cm': 10.0, 'm': 1000.0}.get(self.length_unit.get(), 1.0)
+            base_pos = [float(self.pos_x.get())*unit_scale, float(self.pos_y.get())*unit_scale, float(self.pos_z.get())*unit_scale]
+            base_rot = [float(self.rot_x.get()), float(self.rot_y.get()), float(self.rot_z.get())]
+            
+            imported_names = []
+            
+            # Transfer selected volumes
+            for vol_name in selected_items:
+                if vol_name not in ext_reg.logicalVolumeDict:
+                    continue
+                
+                source_lv = ext_reg.logicalVolumeDict[vol_name]
+                
+                # Handle name collision by renaming
+                final_name = source_lv.name
+                if final_name in self.registry.logicalVolumeDict:
+                    if self.prefix_var.get().strip():
+                        final_name = f"{self.prefix_var.get().strip()}{source_lv.name}"
+                    elif self.add_suffix.get():
+                        final_name = f"{source_lv.name}_imported"
+                    else:
+                        # Generate unique name
+                        cnt = 1
+                        while f"{source_lv.name}_{cnt}" in self.registry.logicalVolumeDict:
+                            cnt += 1
+                        final_name = f"{source_lv.name}_{cnt}"
+                    
+                    source_lv.name = final_name
+                
+                # Use pyg4ometry's addVolumeRecursive
+                print(f"Adding volume: {final_name}")
+                self.registry.addVolumeRecursive(source_lv)
+                
+                # Verify it was added
+                if final_name not in self.registry.logicalVolumeDict:
+                    raise Exception(f"Failed to add volume {final_name} to registry")
+                
+                imported_lv = self.registry.logicalVolumeDict[final_name]
+                imported_names.append(final_name)
+                
+                # Create physical volume placement
+                pv_name = f"{final_name}_pv"
+                cnt = 1
+                while pv_name in self.registry.physicalVolumeDict:
+                    pv_name = f"{final_name}_pv_{cnt}"
+                    cnt += 1
+                
+                print(f"Creating placement: {pv_name}")
+                new_pv = g4.PhysicalVolume(base_rot, base_pos, imported_lv, pv_name, parent_lv, self.registry)
+                self.registry.physicalVolumeDict[pv_name] = new_pv
+                
+                if new_pv not in parent_lv.daughterVolumes:
+                    parent_lv.daughterVolumes.append(new_pv)
+                
+                print(f"Successfully imported: {final_name}")
+            
+            if imported_names:
+                self.result = {'name': imported_names[0]}
+                messagebox.showinfo("Success", f"Successfully imported {len(imported_names)} volume(s)")
+            
+            self.dialog.destroy()
+            
+        except Exception as e:
+            error_msg = f"Failed to insert GDML:\n{str(e)}\n\nCheck terminal for details."
+            messagebox.showerror("Error", error_msg)
+            import traceback
+            print("\n=== ERROR DETAILS ===")
+            traceback.print_exc()
+            print("=====================\n")
+
+
 class MaterialManagementDialog:
     """Dialog for managing (viewing, editing, deleting) user materials."""
     
@@ -1300,6 +1576,7 @@ class GDMLEditorApp:
         edit_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Edit", menu=edit_menu)
         edit_menu.add_command(label="Insert Volume...", command=self.insert_volume, state=tk.DISABLED)
+        edit_menu.add_command(label="Insert from GDML...", command=self.insert_gdml, state=tk.DISABLED)
         edit_menu.add_command(label="Delete Volume...", command=self.delete_volume, state=tk.DISABLED)
         
         # Materials menu
@@ -1556,6 +1833,7 @@ class GDMLEditorApp:
             self.file_menu.entryconfig("Save As...", state=tk.NORMAL)
             self.view_menu.entryconfig("View in VTK", state=tk.NORMAL)
             self.edit_menu.entryconfig("Insert Volume...", state=tk.NORMAL)
+            self.edit_menu.entryconfig("Insert from GDML...", state=tk.NORMAL)
             self.edit_menu.entryconfig("Delete Volume...", state=tk.NORMAL)
             
             self.status_var.set(f"Loaded: {Path(filename).name}")
@@ -2060,6 +2338,37 @@ class GDMLEditorApp:
             self.volume_tree.update_idletasks()
             self.modified = True
             self.status_var.set(f"✓ Inserted volume: {dialog.result['name']}")
+            self._update_viewer()
+
+    def insert_gdml(self):
+        """Insert volumes from another GDML file."""
+        if not self.registry: return
+        
+        # Check if sys.modules contains cached VtkViewer which might cause issues
+        # (similar to the hack at start of file, but good to be safe)
+        
+        dialog = InsertGDMLDialog(self.root, self.registry, self.world_lv)
+        try:
+            self.root.wait_window(dialog.dialog)
+        except Exception:
+            pass
+        
+        if dialog.result:
+            self.refresh_volume_tree()
+            
+            # Reveal inserted volume
+            iname = dialog.result.get('name')
+            if iname and self.volume_tree.exists(iname):
+                iid = iname
+                while iid:
+                    self.volume_tree.item(iid, open=True)
+                    iid = self.volume_tree.parent(iid)
+                self.volume_tree.selection_set(iname)
+                self.volume_tree.see(iname)
+                
+            self.volume_tree.update_idletasks()
+            self.modified = True
+            self.status_var.set(f"✓ Inserted GDML volume: {iname}")
             self._update_viewer()
     
     def delete_volume(self):

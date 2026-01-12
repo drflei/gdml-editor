@@ -37,13 +37,13 @@ gdml_editor/
 ├── README.md                       # Main documentation
 ├── requirements.txt                # Dependencies
 ├── setup.py                        # Setup script
-├── launch_gui.sh                   # Development launch script
+├── gdml_editor.sh                  # Development launch script
 └── view_gdml.py                    # Standalone GDML viewer/converter utility
 ```
 
 ## Verification
 
-- Runs locally via `./launch_gui.sh`
+- Runs locally via `./gdml_editor.sh`
 - Imports via `python -m gdml_editor.gui`
 
 ## Key Features Implemented
@@ -156,7 +156,7 @@ See [PUBLICATION_CHECKLIST.md](PUBLICATION_CHECKLIST.md) for complete step-by-st
 
 ### Development
 - **tests/**: Unit tests for all features
-- **launch_gui.sh**: Development launcher
+- **gdml_editor.sh**: Development launcher
 - **.gitignore**: Git exclusions
 
 ## Technical Highlights

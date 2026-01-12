@@ -30,7 +30,7 @@ python -m gdml_editor.gui
 
 ### Method 3: Launch Script (Development)
 ```bash
-./launch_gui.sh
+./gdml_editor.sh
 ```
 
 ## Quick Tutorial

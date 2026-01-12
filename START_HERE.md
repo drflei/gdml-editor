@@ -50,7 +50,7 @@ gdml_editor/
 ```
 
 ### Convenience Scripts
-- `launch_gui.sh` - Development launcher
+- `gdml_editor.sh` - Development launcher
 - `view_gdml.py` - Standalone GDML viewer/converter utility
 
 ### Tests
@@ -68,7 +68,7 @@ If you want to publish to PyPI/GitHub, follow the steps in PUBLICATION_CHECKLIST
 ## Quick Start
 
 ```bash
-./launch_gui.sh
+./gdml_editor.sh
 ```
 
 ## 📋 Publication Checklist
@@ -95,7 +95,7 @@ If you want to publish to PyPI/GitHub, follow the steps in PUBLICATION_CHECKLIST
 
 ## Useful Commands
 
-- Run the GUI: `./launch_gui.sh`
+- Run the GUI: `./gdml_editor.sh`
 - Build a distribution: `python -m build`
 
 ## 📖 Documentation Reference
@@ -132,7 +132,7 @@ If you want to publish to PyPI/GitHub, follow the steps in PUBLICATION_CHECKLIST
 ## 💡 Tips for Success
 
 ### Before Publishing
-1. ✅ Test the GUI locally: `./launch_gui.sh`
+1. ✅ Test the GUI locally: `./gdml_editor.sh`
 2. ✅ Run tests: `pytest tests/` (if pytest installed)
 3. ✅ Read QUICK_START.md to see user experience
 4. ✅ Check README.md renders correctly

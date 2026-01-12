@@ -1,0 +1,73 @@
+<?xml version="1.0" ?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+	<define/>
+	<materials>
+		<isotope name="G4_C_12" Z="6" N="12">
+			<atom value="12.0"/>
+		</isotope>
+		<isotope name="G4_C_13" Z="6" N="13">
+			<atom value="13.0034"/>
+		</isotope>
+		<element name="G4_C" formula="C">
+			<fraction ref="G4_C_12" n="0.9893"/>
+			<fraction ref="G4_C_13" n="0.0107"/>
+		</element>
+		<isotope name="G4_N_14" Z="7" N="14">
+			<atom value="14.0031"/>
+		</isotope>
+		<isotope name="G4_N_15" Z="7" N="15">
+			<atom value="15.0001"/>
+		</isotope>
+		<element name="G4_N" formula="N">
+			<fraction ref="G4_N_14" n="0.99632"/>
+			<fraction ref="G4_N_15" n="0.00368"/>
+		</element>
+		<isotope name="G4_O_16" Z="8" N="16">
+			<atom value="15.9949"/>
+		</isotope>
+		<isotope name="G4_O_17" Z="8" N="17">
+			<atom value="16.9991"/>
+		</isotope>
+		<isotope name="G4_O_18" Z="8" N="18">
+			<atom value="17.9992"/>
+		</isotope>
+		<element name="G4_O" formula="O">
+			<fraction ref="G4_O_16" n="0.99757"/>
+			<fraction ref="G4_O_17" n="0.00038"/>
+			<fraction ref="G4_O_18" n="0.00205"/>
+		</element>
+		<isotope name="G4_Ar_36" Z="18" N="36">
+			<atom value="35.9675"/>
+		</isotope>
+		<isotope name="G4_Ar_38" Z="18" N="38">
+			<atom value="37.9627"/>
+		</isotope>
+		<isotope name="G4_Ar_40" Z="18" N="40">
+			<atom value="39.9624"/>
+		</isotope>
+		<element name="G4_Ar" formula="Ar">
+			<fraction ref="G4_Ar_36" n="0.003365"/>
+			<fraction ref="G4_Ar_38" n="0.000632"/>
+			<fraction ref="G4_Ar_40" n="0.996003"/>
+		</element>
+		<material name="G4_AIR" state="gas">
+			<D value="0.00120479"/>
+			<fraction ref="G4_C" n="0.0001240001"/>
+			<fraction ref="G4_N" n="0.7552678"/>
+			<fraction ref="G4_O" n="0.2317812"/>
+			<fraction ref="G4_Ar" n="0.01282701"/>
+		</material>
+	</materials>
+	<solids>
+		<box name="WorldSolid" x="2500.0" y="2500.0" z="2500.0" lunit="mm"/>
+	</solids>
+	<structure>
+		<volume name="World">
+			<materialref ref="G4_AIR"/>
+			<solidref ref="WorldSolid"/>
+		</volume>
+	</structure>
+	<setup name="Default" version="1.0">
+		<world ref="World"/>
+	</setup>
+</gdml>
