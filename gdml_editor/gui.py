@@ -1252,16 +1252,12 @@ class InsertVolumeDialog:
             if material_name in self.registry.materialDict:
                 material = self.registry.materialDict[material_name]
             elif material_name.startswith('G4_'):
-                # Create NIST material using pyg4ometry's NIST function (only if not exists)
+                # Use MaterialPredefined for G4 built-in materials (avoids Material_ prefix)
                 try:
-                    material = g4.nist_material_2geant4Material(material_name, self.registry)
-                except:
-                    # If creation fails, try to get it from registry (might already exist)
-                    if material_name in self.registry.materialDict:
-                        material = self.registry.materialDict[material_name]
-                    else:
-                        messagebox.showerror("Error", f"Failed to create NIST material: {material_name}")
-                        return
+                    material = g4.MaterialPredefined(material_name, self.registry)
+                except ValueError:
+                    messagebox.showerror("Error", f"Failed to create G4 material: {material_name}")
+                    return
             else:
                 # Try to create from user database
                 try:
