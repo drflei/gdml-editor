@@ -1,8 +1,12 @@
 #!/bin/bash
 # Launch GDML Editor GUI application
-# Activates the Python virtual environment and starts the GUI
+# Stays in current working directory and starts the GUI
 
-source ~/.venv/bin/activate
-cd ~/gdml_editor
+# Optionally activate virtual environment if it exists
+if [ -f ~/.venv/bin/activate ]; then
+    source ~/.venv/bin/activate
+fi
+
+# Run gdml_editor from current directory
 python -m gdml_editor "$@"
 
