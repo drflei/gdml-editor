@@ -2,7 +2,7 @@
 
 A professional GUI application for editing GDML (Geometry Description Markup Language) files with advanced user-defined materials support.
 
-[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![pyg4ometry](https://img.shields.io/badge/pyg4ometry-1.0+-green.svg)](https://github.com/g4edge/pyg4ometry)
 
