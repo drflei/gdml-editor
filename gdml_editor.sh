@@ -7,6 +7,9 @@ if [ -f ~/.venv/bin/activate ]; then
     source ~/.venv/bin/activate
 fi
 
-# Run gdml_editor from current directory
-python -m gdml_editor "$@"
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Run gdml_editor by adding its parent directory to PYTHONPATH
+PYTHONPATH="$SCRIPT_DIR:$PYTHONPATH" python -m gdml_editor "$@"
 
