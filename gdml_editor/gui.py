@@ -2142,14 +2142,15 @@ class GDMLEditorApp:
             return self.registry.materialDict[material_name]
 
         if material_name.startswith('G4_'):
-            # Create NIST material
+            # Use MaterialPredefined for NIST/G4 built-in materials
+            # This avoids the Material_ prefix and doesn't define them in GDML
             try:
-                return g4.nist_material_2geant4Material(material_name, self.registry)
-            except Exception:
-                # Might already exist after a partial creation
-                if material_name in self.registry.materialDict:
-                    return self.registry.materialDict[material_name]
-                raise
+                mat = g4.MaterialPredefined(material_name, self.registry)
+                # MaterialPredefined automatically adds to registry
+                return mat
+            except ValueError:
+                # If MaterialPredefined fails, fall through to user materials
+                pass
 
         mat_data = self.user_material_db.get_material(material_name)
         if mat_data:
