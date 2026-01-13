@@ -1936,10 +1936,36 @@ class GDMLEditorApp:
         
         try:
             import pyg4ometry.gdml as gdml
+            import pyg4ometry.geant4 as g4
             
             # Use pyg4ometry's GDML reader
             reader = gdml.Reader(filename)
             self.registry = reader.getRegistry()
+            
+            # Post-process registry: wrap any Element instances with Material instances
+            # This handles GDML files that reference elements directly as materials via <materialref>
+            # Uses pyg4ometry's native MaterialPredefined for NIST elements, or MaterialSingleElement as fallback
+            elements_to_wrap = {}
+            for name, obj in list(self.registry.materialDict.items()):
+                if isinstance(obj, g4.Element):
+                    elements_to_wrap[name] = obj
+            
+            for elem_name, element in elements_to_wrap.items():
+                # Try MaterialPredefined first (handles NIST element names like G4_H, G4_C, etc.)
+                # This provides correct densities and properties from the NIST database
+                try:
+                    mat = g4.MaterialPredefined(elem_name, self.registry)
+                    self.registry.materialDict[elem_name] = mat
+                except ValueError:
+                    # Fallback to MaterialSingleElement for non-NIST elements
+                    # Use a nominal density of 1.0 g/cm³ as placeholder
+                    try:
+                        mat = g4.MaterialSingleElement(elem_name, 1.0, element, self.registry)
+                        self.registry.materialDict[elem_name] = mat
+                    except Exception as e:
+                        # If both fail, log warning and leave Element as-is
+                        print(f"Warning: Could not wrap element {elem_name}: {e}")
+            
             self.world_lv = self.registry.getWorldVolume()
             self.gdml_file = filename
             self.modified = False
