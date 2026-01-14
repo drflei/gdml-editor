@@ -134,7 +134,8 @@ dmypy.json
 Thumbs.db
 
 # Project-specific
-example.gdml
+*.gdml
 *.wrl
 *.root
+*.stl
 test_materials.json

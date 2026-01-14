@@ -130,11 +130,8 @@ Materials are stored in `~/.gdml_editor/user_materials.json` and persist across 
 
 ## Documentation
 
-- [User Materials Guide](docs/USER_MATERIALS_GUIDE.md)
-- [Element Dropdown Guide](docs/ELEMENT_DROPDOWN_GUIDE.md)
-- [Implementation Summary](docs/IMPLEMENTATION_SUMMARY.md)
-- [Refactoring Summary](docs/REFACTORING_SUMMARY.md)
-- [Code Comparison](docs/CODE_COMPARISON.md)
+- [User Materials Guide](docs/USER_MATERIALS_GUIDE.md) - Creating custom materials
+- [Element Dropdown Guide](docs/ELEMENT_DROPDOWN_GUIDE.md) - Element selection features
 
 ## Examples
 
