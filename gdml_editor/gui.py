@@ -1888,28 +1888,87 @@ class GDMLEditorApp:
         }
         return pressure * conversion.get(unit, 1.0)
     
+    # NIST element data (Z, A) for creating simple elements when name conflicts occur
+    ELEMENT_DATA = {
+        'H': (1, 1.008), 'He': (2, 4.003), 'Li': (3, 6.94), 'Be': (4, 9.012),
+        'B': (5, 10.81), 'C': (6, 12.011), 'N': (7, 14.007), 'O': (8, 15.999),
+        'F': (9, 18.998), 'Ne': (10, 20.18), 'Na': (11, 22.99), 'Mg': (12, 24.305),
+        'Al': (13, 26.982), 'Si': (14, 28.085), 'P': (15, 30.974), 'S': (16, 32.06),
+        'Cl': (17, 35.45), 'Ar': (18, 39.95), 'K': (19, 39.098), 'Ca': (20, 40.078),
+        'Sc': (21, 44.956), 'Ti': (22, 47.867), 'V': (23, 50.942), 'Cr': (24, 51.996),
+        'Mn': (25, 54.938), 'Fe': (26, 55.845), 'Co': (27, 58.933), 'Ni': (28, 58.693),
+        'Cu': (29, 63.546), 'Zn': (30, 65.38), 'Ga': (31, 69.723), 'Ge': (32, 72.63),
+        'As': (33, 74.922), 'Se': (34, 78.971), 'Br': (35, 79.904), 'Kr': (36, 83.798),
+        'Rb': (37, 85.468), 'Sr': (38, 87.62), 'Y': (39, 88.906), 'Zr': (40, 91.224),
+        'Nb': (41, 92.906), 'Mo': (42, 95.95), 'Tc': (43, 98), 'Ru': (44, 101.07),
+        'Rh': (45, 102.91), 'Pd': (46, 106.42), 'Ag': (47, 107.87), 'Cd': (48, 112.41),
+        'In': (49, 114.82), 'Sn': (50, 118.71), 'Sb': (51, 121.76), 'Te': (52, 127.6),
+        'I': (53, 126.9), 'Xe': (54, 131.29), 'Cs': (55, 132.91), 'Ba': (56, 137.33),
+        'La': (57, 138.91), 'Ce': (58, 140.12), 'Pr': (59, 140.91), 'Nd': (60, 144.24),
+        'Pm': (61, 145), 'Sm': (62, 150.36), 'Eu': (63, 151.96), 'Gd': (64, 157.25),
+        'Tb': (65, 158.93), 'Dy': (66, 162.5), 'Ho': (67, 164.93), 'Er': (68, 167.26),
+        'Tm': (69, 168.93), 'Yb': (70, 173.05), 'Lu': (71, 174.97), 'Hf': (72, 178.49),
+        'Ta': (73, 180.95), 'W': (74, 183.84), 'Re': (75, 186.21), 'Os': (76, 190.23),
+        'Ir': (77, 192.22), 'Pt': (78, 195.08), 'Au': (79, 196.97), 'Hg': (80, 200.59),
+        'Tl': (81, 204.38), 'Pb': (82, 207.2), 'Bi': (83, 208.98), 'Po': (84, 209),
+        'At': (85, 210), 'Rn': (86, 222), 'Fr': (87, 223), 'Ra': (88, 226),
+        'Ac': (89, 227), 'Th': (90, 232.04), 'Pa': (91, 231.04), 'U': (92, 238.03),
+    }
+
     def _get_or_create_element(self, element_name):
-        """Get element from registry or create from NIST database."""
+        """Get element from registry or create from NIST database.
+        
+        Handles the case where G4_X names may exist as Materials (from GDML 
+        <materialref ref="G4_Si"/>) but we need them as Elements for composition.
+        """
         import pyg4ometry.geant4 as g4
         
         # Normalize common element inputs: accept 'C' or 'G4_C'
         candidates = [element_name]
         if not element_name.startswith('G4_'):
             candidates.insert(0, f'G4_{element_name}')
+        
+        # Get pure symbol (without G4_ prefix)
+        sym = element_name.replace('G4_', '') if element_name.startswith('G4_') else element_name
 
         # Check if element already exists in registry materials
+        # Note: materialDict may contain both Elements and Materials, so verify the type
         mat_dict = getattr(self.registry, 'materialDict', {})
         for cand in candidates:
             if cand in mat_dict:
-                return mat_dict[cand]
+                obj = mat_dict[cand]
+                # Only return if it's actually an Element instance
+                if isinstance(obj, g4.Element):
+                    return obj
+                # If it's a Material, don't use it - we need an Element
+        
+        # Also check for _elem suffixed versions we may have created earlier
+        for cand in candidates:
+            alt_name = f'{cand}_elem'
+            if alt_name in mat_dict:
+                obj = mat_dict[alt_name]
+                if isinstance(obj, g4.Element):
+                    return obj
 
         # Try creating from NIST database using pyg4ometry with fallback names
+        # If the name conflicts with an existing Material, try alternative naming
         last_exc = None
         for cand in candidates:
             try:
                 return g4.nist_element_2geant4Element(cand, self.registry)
             except Exception as e:
                 last_exc = e
+                # If it's a name conflict (Material already exists with this name),
+                # try creating a simple element with a unique suffix
+                if 'Identical' in str(e) and 'name' in str(e):
+                    alt_name = f'{cand}_elem'
+                    if sym in self.ELEMENT_DATA:
+                        Z, A = self.ELEMENT_DATA[sym]
+                        try:
+                            elem = g4.Element(name=alt_name, symbol=sym, Z=Z, A=A, registry=self.registry)
+                            return elem
+                        except Exception as inner_e:
+                            last_exc = inner_e
 
         raise ValueError(f"Unknown element '{element_name}': {last_exc}")
         
