@@ -1250,7 +1250,22 @@ class InsertVolumeDialog:
             
             # Get or create material
             if material_name in self.registry.materialDict:
-                material = self.registry.materialDict[material_name]
+                obj = self.registry.materialDict[material_name]
+                # If it's an Element (not Material), we need to create a proper Material
+                if isinstance(obj, g4.Element):
+                    # This can happen if G4_Si was created as an Element for material composition
+                    # Create a proper Material for it
+                    if material_name.startswith('G4_'):
+                        try:
+                            material = g4.MaterialPredefined(material_name, self.registry)
+                        except ValueError:
+                            messagebox.showerror("Error", f"Failed to create G4 material: {material_name}")
+                            return
+                    else:
+                        messagebox.showerror("Error", f"Material '{material_name}' is an element, not a material")
+                        return
+                else:
+                    material = obj
             elif material_name.startswith('G4_'):
                 # Use MaterialPredefined for G4 built-in materials (avoids Material_ prefix)
                 try:
@@ -1403,6 +1418,25 @@ class InsertVolumeDialog:
             self.dialog.destroy()
             
         except Exception as e:
+            # Clean up partially created objects on failure
+            try:
+                # Remove the logical volume if it was created
+                if vol_name in self.registry.logicalVolumeDict:
+                    del self.registry.logicalVolumeDict[vol_name]
+                
+                # Remove the solid if it was created
+                solid_name = f"{vol_name}_solid"
+                if solid_name in self.registry.solidDict:
+                    del self.registry.solidDict[solid_name]
+                
+                # Remove physical volume if it was created
+                pv_name = f"{vol_name}_pv"
+                pv_dict = getattr(self.registry, 'physicalVolumeDict', {})
+                if pv_name in pv_dict:
+                    del pv_dict[pv_name]
+            except Exception as cleanup_error:
+                print(f"Warning: Cleanup failed: {cleanup_error}")
+            
             messagebox.showerror("Error", f"Failed to create volume:\n{str(e)}")
     
     def _convert_density(self, density, unit):
@@ -2194,7 +2228,20 @@ class GDMLEditorApp:
             raise ValueError("No registry loaded")
 
         if material_name in self.registry.materialDict:
-            return self.registry.materialDict[material_name]
+            obj = self.registry.materialDict[material_name]
+            # If it's an Element (not Material), create a proper Material for it
+            if isinstance(obj, g4.Element):
+                # This can happen if G4_Si was created as an Element for material composition
+                # Create a proper Material for it
+                if material_name.startswith('G4_'):
+                    try:
+                        mat = g4.MaterialPredefined(material_name, self.registry)
+                        return mat
+                    except ValueError:
+                        raise ValueError(f"Material '{material_name}' exists only as Element, cannot use as material")
+                else:
+                    raise ValueError(f"'{material_name}' is an element, not a material")
+            return obj
 
         if material_name.startswith('G4_'):
             # Use MaterialPredefined for NIST/G4 built-in materials
@@ -2512,6 +2559,102 @@ class GDMLEditorApp:
         self.save_to_file(filename)
         self.gdml_file = filename
     
+    def _ensure_element_definitions(self):
+        """Ensure all elements referenced by materials are properly defined.
+        
+        When GDML uses NIST materials like G4_H both as materials (in <materialref>)
+        and as element references (in <fraction ref="G4_H">), pyg4ometry may load
+        them as Materials. This causes write/read round-trip failures because the
+        Writer doesn't output <element> definitions for Materials.
+        
+        This method ensures that for every material with element components, the
+        referenced elements exist as actual Element instances in the registry,
+        and updates the material components to reference these Elements.
+        """
+        import pyg4ometry.geant4 as g4
+        
+        mat_dict = getattr(self.registry, 'materialDict', {})
+        
+        # First pass: create Element objects for any Material used as element component
+        element_map = {}  # Maps Material name -> Element object
+        
+        for name, obj in list(mat_dict.items()):
+            if not isinstance(obj, g4.Material):
+                continue
+            
+            components = getattr(obj, 'components', None)
+            if not components:
+                continue
+            
+            for comp_item in components:
+                try:
+                    # Handle both tuple/list and direct object references
+                    if isinstance(comp_item, (tuple, list)) and len(comp_item) >= 2:
+                        comp_obj = comp_item[0]
+                    else:
+                        continue
+                    
+                    # If component is a Material (not Element), we need to create an Element
+                    if isinstance(comp_obj, g4.Material) and not isinstance(comp_obj, g4.Element):
+                        comp_name = getattr(comp_obj, 'name', '')
+                        
+                        if comp_name in element_map:
+                            continue  # Already processed
+                        
+                        # Extract symbol from name (e.g., G4_Si -> Si)
+                        sym = comp_name.replace('G4_', '') if comp_name.startswith('G4_') else comp_name
+                        
+                        if sym in self.ELEMENT_DATA:
+                            Z, A = self.ELEMENT_DATA[sym]
+                            elem_name = f'{comp_name}_elem'
+                            try:
+                                # Check if this element already exists
+                                if elem_name in mat_dict and isinstance(mat_dict[elem_name], g4.Element):
+                                    element_map[comp_name] = mat_dict[elem_name]
+                                else:
+                                    elem = g4.Element(name=elem_name, symbol=sym, Z=Z, A=A, registry=self.registry)
+                                    element_map[comp_name] = elem
+                            except Exception as ex:
+                                print(f"Warning: Could not create element for {comp_name}: {ex}")
+                except (TypeError, IndexError):
+                    continue  # Skip malformed components
+        
+        # Second pass: replace Material references with Element references in components
+        for name, obj in list(mat_dict.items()):
+            if not isinstance(obj, g4.Material):
+                continue
+            
+            components = getattr(obj, 'components', None)
+            if not components:
+                continue
+            
+            new_components = []
+            modified = False
+            
+            for comp_item in components:
+                try:
+                    if isinstance(comp_item, (tuple, list)) and len(comp_item) >= 2:
+                        comp_obj = comp_item[0]
+                        fraction = comp_item[1]
+                        # Preserve any additional tuple elements
+                        rest = comp_item[2:] if len(comp_item) > 2 else ()
+                        
+                        # If component is a Material that we've mapped to an Element, replace it
+                        comp_name = getattr(comp_obj, 'name', '')
+                        if comp_name in element_map:
+                            new_comp = (element_map[comp_name], fraction) + tuple(rest)
+                            new_components.append(new_comp)
+                            modified = True
+                        else:
+                            new_components.append(comp_item)
+                    else:
+                        new_components.append(comp_item)
+                except (TypeError, IndexError):
+                    new_components.append(comp_item)
+            
+            if modified:
+                obj.components = new_components
+    
     def save_to_file(self, filename):
         """Save registry to file using pyg4ometry Writer."""
         try:
@@ -2519,6 +2662,9 @@ class GDMLEditorApp:
             
             self.status_var.set(f"Saving to {filename}...")
             self.root.update()
+            
+            # Ensure all element definitions are present before writing
+            self._ensure_element_definitions()
             
             # Use pyg4ometry's GDML writer
             writer = gdml.Writer()
@@ -2849,6 +2995,9 @@ class GDMLEditorApp:
                 with tempfile.NamedTemporaryFile(mode='w', suffix='.gdml', delete=False) as tmp:
                     self.viewer_temp_file = tmp.name
             
+            # Ensure all element definitions are present before writing
+            self._ensure_element_definitions()
+            
             # Save current geometry
             writer = gdml.Writer()
             writer.addDetector(self.registry)
@@ -2895,6 +3044,8 @@ class GDMLEditorApp:
         if self.viewer_process and self.viewer_process.poll() is None:
             try:
                 import pyg4ometry.gdml as gdml
+                # Ensure element definitions exist before writing
+                self._ensure_element_definitions()
                 # Save current geometry to the temp file
                 writer = gdml.Writer()
                 writer.addDetector(self.registry)
