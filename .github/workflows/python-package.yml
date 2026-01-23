@@ -3,10 +3,10 @@ name: Python Package
 on:
   push:
     branches: [ main, develop ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main ]
-  release:
-    types: [created]
 
 jobs:
   test:
@@ -77,7 +77,7 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' && github.event.action == 'created'
+    if: startsWith(github.ref, 'refs/tags/')
     permissions:
       id-token: write
       contents: read
