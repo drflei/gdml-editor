@@ -1,6 +1,10 @@
 """Tests for material handling (pyg4ometry-only)."""
 
-import pyg4ometry.geant4 as g4
+import pytest
+
+pytest.importorskip("tkinter")
+g4 = pytest.importorskip("pyg4ometry.geant4")
+
 import gdml_editor.gui as gui
 
 

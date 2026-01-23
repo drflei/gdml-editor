@@ -1,5 +1,9 @@
 """Tests for removal of local element dropdown helpers."""
 
+import pytest
+
+pytest.importorskip("tkinter")
+
 import gdml_editor.gui as gui
 
 
