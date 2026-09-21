@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Synchronized the package and runtime version metadata at 1.0.6.
 - Corrected the documented minimum Python version to 3.10.
+- Made the NIST integration test skip cleanly when pyg4ometry's native dependency is unavailable.
 
 ## [1.0.5] - 2026-09-21
 

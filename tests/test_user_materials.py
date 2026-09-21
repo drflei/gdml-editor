@@ -3,7 +3,10 @@
 import pytest
 
 pytest.importorskip("tkinter")
-g4 = pytest.importorskip("pyg4ometry.geant4")
+try:
+    from pyg4ometry import geant4 as g4
+except (ImportError, OSError) as exc:
+    pytest.skip(f"pyg4ometry.geant4 is unavailable: {exc}", allow_module_level=True)
 
 import gdml_editor.gui as gui
 
