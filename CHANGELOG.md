@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recently used materials
 - Material comparison tools
 
+## [1.0.5] - 2026-09-21
+
+### Changed
+- Removed macOS from the release CI matrix because the hosted runner cannot load pyg4ometry's OpenCascade dependency.
+- Release CI now validates Ubuntu and Windows builds.
+
 ## [1.0.4] - 2026-09-21
 
 ### Added
