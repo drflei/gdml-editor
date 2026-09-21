@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recently used materials
 - Material comparison tools
 
+## [1.0.4] - 2026-09-21
+
+### Added
+- Restored the visible Materials menu in the GUI
+- Added persistent user-defined compound and mixture materials
+- Added create, edit, delete, and material assignment workflows
+- Added tests for material persistence and element availability
+
+### Fixed
+- Kept package metadata, runtime version, and repository links consistent
+
 ## [1.0.1] - 2026-01-11
 
 ### Changed

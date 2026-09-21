@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gdml-editor"
-version = "1.0.3"
+version = "1.0.4"
 description = "A GUI application for editing GDML geometry files with user-defined materials support"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -38,10 +38,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/gdml-editor"
-Documentation = "https://github.com/yourusername/gdml-editor#readme"
-Repository = "https://github.com/yourusername/gdml-editor"
-"Bug Tracker" = "https://github.com/yourusername/gdml-editor/issues"
+Homepage = "https://github.com/drflei/gdml-editor"
+Documentation = "https://github.com/drflei/gdml-editor#readme"
+Repository = "https://github.com/drflei/gdml-editor"
+"Bug Tracker" = "https://github.com/drflei/gdml-editor/issues"
 
 [project.scripts]
 gdml-editor = "gdml_editor.gui:main"

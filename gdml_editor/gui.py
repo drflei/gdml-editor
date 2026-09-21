@@ -15,6 +15,8 @@ Fixes the same sys.modules issue as run_vtkviewer.py.
 
 import sys
 import os
+import json
+import re
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
@@ -26,6 +28,221 @@ for mod in modules_to_clear:
 
 # Ensure DISPLAY is set for X11
 os.environ["DISPLAY"] = ":0"
+
+
+class UserMaterialDatabase:
+    """Persistent store for user-defined compound and mixture materials."""
+
+    def __init__(self, db_file="user_materials.json"):
+        self.db_file = Path.home() / ".gdml_editor" / db_file
+        self.materials = {}
+        self.load()
+
+    def load(self):
+        if not self.db_file.exists():
+            return
+        try:
+            with self.db_file.open("r", encoding="utf-8") as stream:
+                self.materials = json.load(stream)
+        except (OSError, ValueError):
+            self.materials = {}
+
+    def save(self):
+        self.db_file.parent.mkdir(parents=True, exist_ok=True)
+        with self.db_file.open("w", encoding="utf-8") as stream:
+            json.dump(self.materials, stream, indent=2)
+
+    def add_material(self, name, material_data):
+        self.materials[name] = material_data
+        self.save()
+
+    def remove_material(self, name):
+        if name not in self.materials:
+            return False
+        del self.materials[name]
+        self.save()
+        return True
+
+    def get_material(self, name):
+        return self.materials.get(name)
+
+    def list_materials(self):
+        return sorted(self.materials)
+
+
+class MaterialDefinitionDialog:
+    """Create or edit a user-defined material."""
+
+    ELEMENTS = [
+        "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg",
+        "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca", "Sc", "Ti", "V", "Cr",
+        "Mn", "Fe", "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr",
+        "Rb", "Sr", "Y", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd",
+        "In", "Sn", "Sb", "Te", "I", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd",
+        "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf",
+        "Ta", "W", "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po",
+        "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa", "U", "Np", "Pu", "Am", "Cm",
+        "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs",
+        "Mt", "Ds", "Rg", "Cn", "Nh", "Fl", "Mc", "Lv", "Ts", "Og",
+    ]
+
+    def __init__(self, parent, user_db, material_name=None):
+        self.user_db = user_db
+        self.material_name = material_name
+        self.result = None
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Edit Material" if material_name else "Define Material")
+        self.dialog.geometry("620x520")
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        self._build_ui()
+        if material_name:
+            self._load(material_name)
+
+    def _build_ui(self):
+        frame = ttk.Frame(self.dialog, padding=10)
+        frame.pack(fill=tk.BOTH, expand=True)
+        self.name_var = tk.StringVar(value=self.material_name or "")
+        self.type_var = tk.StringVar(value="compound")
+        self.density_var = tk.StringVar()
+        self.unit_var = tk.StringVar(value="g/cm3")
+        self.composition_var = tk.StringVar()
+        self.state_var = tk.StringVar(value="solid")
+
+        for label, variable in (("Material name:", self.name_var), ("Density:", self.density_var)):
+            row = ttk.Frame(frame)
+            row.pack(fill=tk.X, pady=4)
+            ttk.Label(row, text=label, width=18).pack(side=tk.LEFT)
+            ttk.Entry(row, textvariable=variable, state="readonly" if self.material_name and variable is self.name_var else "normal").pack(side=tk.LEFT, fill=tk.X, expand=True)
+        unit_row = ttk.Frame(frame)
+        unit_row.pack(fill=tk.X, pady=4)
+        ttk.Label(unit_row, text="Density unit:", width=18).pack(side=tk.LEFT)
+        ttk.Combobox(unit_row, textvariable=self.unit_var, values=("g/cm3", "mg/cm3", "kg/m3"), state="readonly").pack(side=tk.LEFT)
+
+        type_row = ttk.Frame(frame)
+        type_row.pack(fill=tk.X, pady=4)
+        ttk.Label(type_row, text="Composition:", width=18).pack(side=tk.LEFT)
+        ttk.Radiobutton(type_row, text="Compound formula", variable=self.type_var, value="compound", command=self._refresh_composition).pack(side=tk.LEFT)
+        ttk.Radiobutton(type_row, text="Element mixture", variable=self.type_var, value="mixture", command=self._refresh_composition).pack(side=tk.LEFT)
+        self.composition_frame = ttk.LabelFrame(frame, text="Composition", padding=8)
+        self.composition_frame.pack(fill=tk.BOTH, expand=True, pady=8)
+        self._refresh_composition()
+
+        state_row = ttk.Frame(frame)
+        state_row.pack(fill=tk.X, pady=4)
+        ttk.Label(state_row, text="State:", width=18).pack(side=tk.LEFT)
+        ttk.Combobox(state_row, textvariable=self.state_var, values=("solid", "liquid", "gas"), state="readonly").pack(side=tk.LEFT)
+        buttons = ttk.Frame(frame)
+        buttons.pack(fill=tk.X, pady=8)
+        ttk.Button(buttons, text="Cancel", command=self.dialog.destroy).pack(side=tk.RIGHT, padx=4)
+        ttk.Button(buttons, text="Save Material", command=self._save).pack(side=tk.RIGHT, padx=4)
+
+    def _refresh_composition(self):
+        for child in self.composition_frame.winfo_children():
+            child.destroy()
+        if self.type_var.get() == "compound":
+            ttk.Label(self.composition_frame, text="Molecular formula (for example H2O or SiO2):").pack(anchor=tk.W)
+            ttk.Entry(self.composition_frame, textvariable=self.composition_var).pack(fill=tk.X, pady=6)
+            return
+        ttk.Label(self.composition_frame, text="Enter element symbols and mass fractions separated by commas.").pack(anchor=tk.W)
+        ttk.Label(self.composition_frame, text="Example: Fe:0.68, Cr:0.17, Ni:0.12, Mo:0.03").pack(anchor=tk.W)
+        ttk.Entry(self.composition_frame, textvariable=self.composition_var).pack(fill=tk.X, pady=6)
+
+    def _load(self, name):
+        data = self.user_db.get_material(name) or {}
+        self.type_var.set(data.get("type", "compound"))
+        self.density_var.set(str(data.get("density", "")))
+        self.unit_var.set(data.get("density_unit", "g/cm3"))
+        self.state_var.set(data.get("state", "solid"))
+        composition = data.get("composition", "")
+        if isinstance(composition, list):
+            composition = ", ".join(f"{item['element']}:{item['fraction']}" for item in composition)
+        self.composition_var.set(composition)
+        self._refresh_composition()
+
+    def _save(self):
+        name = self.name_var.get().strip()
+        try:
+            density = float(self.density_var.get())
+            if not name or density <= 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror("Error", "Enter a material name and positive density.")
+            return
+        raw = self.composition_var.get().strip()
+        if self.type_var.get() == "compound":
+            if not re.fullmatch(r"(?:[A-Z][a-z]?\d*)+", raw):
+                messagebox.showerror("Error", "Enter a valid molecular formula.")
+                return
+            composition = raw
+        else:
+            composition = []
+            try:
+                for item in raw.split(","):
+                    element, fraction = item.split(":", 1)
+                    if element.strip() not in self.ELEMENTS:
+                        raise ValueError
+                    composition.append({"element": element.strip(), "fraction": float(fraction)})
+                if not composition or abs(sum(item["fraction"] for item in composition) - 1.0) > 0.001:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Error", "Mixture fractions must use valid elements and sum to 1.0.")
+                return
+        self.user_db.add_material(name, {"type": self.type_var.get(), "density": density, "density_unit": self.unit_var.get(), "composition": composition, "state": self.state_var.get()})
+        self.result = name
+        self.dialog.destroy()
+
+
+class MaterialManagementDialog:
+    """List and remove persisted user-defined materials."""
+
+    def __init__(self, parent, user_db, app):
+        self.user_db = user_db
+        self.app = app
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Manage User Materials")
+        self.dialog.geometry("520x360")
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        self.listbox = tk.Listbox(self.dialog)
+        self.listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        buttons = ttk.Frame(self.dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=(0, 10))
+        ttk.Button(buttons, text="New Material", command=self.new_material).pack(side=tk.LEFT)
+        ttk.Button(buttons, text="Edit Selected", command=self.edit_material).pack(side=tk.LEFT, padx=4)
+        ttk.Button(buttons, text="Delete Selected", command=self.delete_material).pack(side=tk.LEFT)
+        ttk.Button(buttons, text="Close", command=self.dialog.destroy).pack(side=tk.RIGHT)
+        self.refresh()
+
+    def refresh(self):
+        self.listbox.delete(0, tk.END)
+        for name in self.user_db.list_materials():
+            self.listbox.insert(tk.END, name)
+
+    def _selected(self):
+        selected = self.listbox.curselection()
+        return self.listbox.get(selected[0]) if selected else None
+
+    def new_material(self):
+        dialog = MaterialDefinitionDialog(self.dialog, self.user_db)
+        self.dialog.wait_window(dialog.dialog)
+        self.refresh()
+        self.app.update_user_material_list()
+
+    def edit_material(self):
+        name = self._selected()
+        if name:
+            dialog = MaterialDefinitionDialog(self.dialog, self.user_db, name)
+            self.dialog.wait_window(dialog.dialog)
+            self.refresh()
+            self.app.update_user_material_list()
+
+    def delete_material(self):
+        name = self._selected()
+        if name and messagebox.askyesno("Delete Material", f"Delete '{name}'?"):
+            self.user_db.remove_material(name)
+            self.refresh()
+            self.app.update_user_material_list()
 
 
 class InsertVolumeDialog:
@@ -832,6 +1049,11 @@ class GDMLEditorApp:
         view_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="View", menu=view_menu)
         view_menu.add_command(label="View in VTK", command=self.view_in_vtk, state=tk.DISABLED)
+
+        materials_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Materials", menu=materials_menu)
+        materials_menu.add_command(label="Define New Material...", command=self.define_new_material)
+        materials_menu.add_command(label="Manage User Materials...", command=self.manage_user_materials)
         
         # Edit menu
         edit_menu = tk.Menu(menubar, tearoff=0)
@@ -849,6 +1071,7 @@ class GDMLEditorApp:
         self.view_menu = view_menu
         self.edit_menu = edit_menu
         self.tools_menu = tools_menu
+        self.materials_menu = materials_menu
         
         # Main container with paned window
         main_paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
@@ -939,6 +1162,22 @@ class GDMLEditorApp:
 
         # Initialize dropdown values (will populate after a GDML is loaded)
         self._cached_nist_materials = None
+        self.user_material_db = UserMaterialDatabase()
+
+    def update_user_material_list(self):
+        """Refresh material choices after the user database changes."""
+        self._update_volume_material_dropdown()
+
+    def define_new_material(self):
+        dialog = MaterialDefinitionDialog(self.root, self.user_material_db)
+        self.root.wait_window(dialog.dialog)
+        if dialog.result:
+            self.update_user_material_list()
+
+    def manage_user_materials(self):
+        dialog = MaterialManagementDialog(self.root, self.user_material_db, self)
+        self.root.wait_window(dialog.dialog)
+        self.update_user_material_list()
         
     def open_gdml(self):
         """Open a GDML file using pyg4ometry Reader."""
@@ -1115,6 +1354,7 @@ class GDMLEditorApp:
             except Exception:
                 self._cached_nist_materials = []
         materials.update(self._cached_nist_materials)
+        materials.update(self.user_material_db.list_materials())
 
         return sorted(materials, key=lambda s: s.lower())
 
@@ -1156,10 +1396,43 @@ class GDMLEditorApp:
                 # MaterialPredefined automatically adds to registry
                 return mat
             except ValueError:
-                # If MaterialPredefined fails, fall through to user materials
                 pass
 
+        material_data = self.user_material_db.get_material(material_name)
+        if material_data:
+            return self._create_user_material(material_name, material_data)
+
         raise ValueError(f"Unknown material '{material_name}'")
+
+    def _create_user_material(self, name, data):
+        """Create a saved user material in the loaded pyg4ometry registry."""
+        import inspect
+        import pyg4ometry.geant4 as g4
+
+        density = float(data["density"])
+        density *= {"g/cm3": 1.0, "mg/cm3": 1e-3, "kg/m3": 1e-3}.get(data.get("density_unit", "g/cm3"), 1.0)
+        components = data["composition"]
+        if isinstance(components, str):
+            components = [(symbol, int(count or 1)) for symbol, count in re.findall(r"([A-Z][a-z]?)(\d*)", components)]
+            number_of_components = len(components)
+        else:
+            number_of_components = len(components)
+
+        signature = inspect.signature(g4.MaterialCompound)
+        kwargs = {}
+        for key, value in (("name", name), ("density", density), ("number_of_components", number_of_components), ("registry", self.registry), ("state", data.get("state", "solid"))):
+            if key in signature.parameters:
+                kwargs[key] = value
+        material = g4.MaterialCompound(**kwargs)
+        for item in components:
+            symbol, value = (item if isinstance(item, tuple) else (item["element"], item["fraction"]))
+            element = g4.nist_element_2geant4Element(symbol, self.registry)
+            if isinstance(data["composition"], str):
+                material.add_element_natoms(element, value)
+            else:
+                material.add_element_massfraction(element, value)
+        self.registry.materialDict[name] = material
+        return material
 
     def apply_selected_material(self):
         """Apply the selected material from the Volume Properties dropdown."""
