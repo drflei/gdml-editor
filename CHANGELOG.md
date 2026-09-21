@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recently used materials
 - Material comparison tools
 
+## [1.0.6] - 2026-09-21
+
+### Changed
+- Synchronized the package and runtime version metadata at 1.0.6.
+- Corrected the documented minimum Python version to 3.10.
+
 ## [1.0.5] - 2026-09-21
 
 ### Changed

@@ -49,7 +49,7 @@ pip install -e .
 
 ### Requirements
 
-- Python 3.8+
+- Python 3.10+
 - pyg4ometry >= 1.0.0
 - VTK >= 9.0.0
 
