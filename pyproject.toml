@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gdml-editor"
-version = "1.0.7"
+version = "1.0.8"
 description = "A GUI application for editing GDML geometry files with user-defined materials support"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -25,7 +25,7 @@ classifiers = [
 ]
 dependencies = [
     "pyg4ometry>=1.0.0",
-    "vtk>=9.0.0",
+    "vtk>=9.0.0,<9.6",
 ]
 
 [project.optional-dependencies]

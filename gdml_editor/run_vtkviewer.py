@@ -55,10 +55,6 @@ modules_to_clear = [k for k in sys.modules.keys() if 'VtkViewer' in k]
 for mod in modules_to_clear:
     del sys.modules[mod]
 
-# Ensure DISPLAY is set for X11 (hardware acceleration)
-os.environ["DISPLAY"] = ":0"
-
-
 def load_geometry(file_path, use_flat=False):
     """Load geometry from various formats.
     
@@ -366,6 +362,11 @@ if __name__ == "__main__":
     
     if not os.path.exists(geometry_file):
         print(f"Error: File not found: {geometry_file}")
+        sys.exit(1)
+
+    if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
+        print("Error: No X display is available for the interactive VTK viewer.")
+        print("Run this command from a graphical desktop session, or connect with X11 forwarding enabled (for example, ssh -X).")
         sys.exit(1)
     
     # Import VTK and pyg4ometry AFTER clearing sys.modules

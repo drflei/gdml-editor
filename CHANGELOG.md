@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-09-22
+
+### Fixed
+- Restored interactive Linux VTK viewing by constraining VTK to versions before 9.6, which retain the X11 render window required by pyg4ometry.
+- Preserve the active X11 display instead of overriding `DISPLAY` with a hard-coded value.
+- Report a clear error when the interactive viewer is launched without an available Linux X display.
+
 ### Planned
 - Material import/export (CSV, XML)
 - Material templates library

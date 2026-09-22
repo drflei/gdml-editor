@@ -26,10 +26,6 @@ modules_to_clear = [k for k in sys.modules.keys() if 'VtkViewer' in k]
 for mod in modules_to_clear:
     del sys.modules[mod]
 
-# Ensure DISPLAY is set for X11
-os.environ["DISPLAY"] = ":0"
-
-
 class UserMaterialDatabase:
     """Persistent store for user-defined compound and mixture materials."""
 
@@ -2072,6 +2068,16 @@ class GDMLEditorApp:
     def view_in_vtk(self):
         """Launch VTK viewer for current geometry in a separate process with auto-refresh."""
         if not self.registry:
+            return
+
+        if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
+            messagebox.showerror(
+                "VTK viewer unavailable",
+                "No X display is available for the interactive VTK viewer.\n\n"
+                "Run gdml-editor from a graphical desktop session, or connect with X11 "
+                "forwarding enabled (for example, ssh -X).",
+            )
+            self.status_var.set("VTK viewer unavailable: no X display")
             return
         
         try:
