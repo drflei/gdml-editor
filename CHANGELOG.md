@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recently used materials
 - Material comparison tools
 
+## [1.0.7] - 2026-09-22
+
+### Changed
+- Removed Windows from the release CI matrix so publishing depends only on Ubuntu validation.
+
 ## [1.0.6] - 2026-09-21
 
 ### Changed
